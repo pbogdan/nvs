@@ -18,7 +18,6 @@ cabal-version:       >=1.10
 
 library
   exposed-modules:     
-    Distribution.Nixpkgs.Packages
     Distribution.Package
   -- other-modules:       
   -- other-extensions:    

@@ -3,9 +3,13 @@ module Distribution.Package where
 import           Protolude
 
 import           Data.Aeson
-import Data.Char
+import           Data.Aeson.Types
+import qualified Data.ByteString as Bytes
+import           Data.Char
+import qualified Data.HashMap.Strict as HashMap
 import qualified Data.Text as Text
 import           Data.Vector (Vector)
+import qualified Data.Vector as Vec
 
 data Package = Package
   { packageSystem :: Text
@@ -84,3 +88,12 @@ instance FromJSON LicenseDetails where
     LicenseDetails <$> o .:? "shortName" <*> o .:? "fullName" <*> o .:? "url" <*>
     o .:? "spdxId"
   parseJSON x = panic . show $ x
+
+parsePackages :: (MonadIO m) => FilePath -> m (Vector Package)
+parsePackages path = do
+  s <- liftIO . Bytes.readFile $ path
+  let parser =
+        withObject "Packages" $ \o ->
+          sequenceA (parseJSON <$> (Vec.fromList . HashMap.elems $ o))
+  let mRet = join (parseEither parser <$> eitherDecodeStrict s)
+  return $ either (panic . toS) identity mRet
