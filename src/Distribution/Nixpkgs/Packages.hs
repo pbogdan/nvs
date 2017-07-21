@@ -9,8 +9,8 @@ import qualified Data.Vector as Vec
 import           Distribution.Package
 import           Protolude
 
-getPackages :: (MonadIO m) => FilePath -> m (Vector Package)
-getPackages path = do
+parsePackages :: (MonadIO m) => FilePath -> m (Vector Package)
+parsePackages path = do
   s <- liftIO . Bytes.readFile $ path
   let parser =
         withObject "Packages" $ \o ->
