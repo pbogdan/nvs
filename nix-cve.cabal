@@ -34,16 +34,3 @@ library
   default-extensions:  OverloadedStrings
                      , NoImplicitPrelude
   ghc-options:         -Wall
-
-executable nix-cve
-   build-depends:       base >=4.9 && <4.10
-                      , protolude
-                      , nix-cve
-                      , vector
-  hs-source-dirs:      app
-  main-is:             Main.hs
-  default-language:    Haskell2010
-  default-extensions:  OverloadedStrings
-                     , NoImplicitPrelude
-
-          

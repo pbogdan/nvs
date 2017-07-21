@@ -11,13 +11,10 @@ let
         pname = "nix-cve";
         version = "0.1.0.0";
         src = ./.;
-        isLibrary = true;
-        isExecutable = true;
         libraryHaskellDepends = [
           aeson attoparsec base bytestring protolude text
           unordered-containers vector
         ];
-        executableHaskellDepends = [ base protolude vector ];
         homepage = "https://github.com/pbogdan/nix-cve";
         license = stdenv.lib.licenses.bsd3;
       };
