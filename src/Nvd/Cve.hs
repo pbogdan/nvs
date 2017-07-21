@@ -8,6 +8,8 @@ import           Control.Monad
 import           Data.Aeson
 import           Data.Aeson.Types
 import qualified Data.ByteString as Bytes
+import           Data.HashMap.Strict (HashMap)
+import qualified Data.HashMap.Strict as HashMap
 import           Data.Vector (Vector)
 import qualified Data.Vector as Vec
 
@@ -62,3 +64,20 @@ parseCves path = do
   let parser = withObject "cves" $ \o -> o .: "CVE_Items" >>= parseJSON
   let mRet = join (parseEither parser <$> eitherDecodeStrict s)
   return $ either (panic . toS) identity mRet
+
+cveProducts :: Cve -> [(Text, Text)]
+cveProducts cve =
+  let affected = cveAffects cve
+      products = concatMap vendorProduct affected
+  in concatMap
+       (\p -> zip (repeat . vendorProductName $ p) (vendorProductVersion p))
+       products
+
+cvesByProduct :: Vector Cve -> HashMap (Text, Text) Cve
+cvesByProduct = Vec.foldl' go HashMap.empty
+  where
+    go :: HashMap (Text, Text) Cve -> Cve -> HashMap (Text, Text) Cve
+    go acc cve =
+      let products = cveProducts cve
+          go' acc' x = HashMap.insert x cve acc'
+      in HashMap.union (foldl' go' HashMap.empty products) acc
