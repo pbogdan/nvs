@@ -41,7 +41,6 @@ parseVersion s =
 parseName :: Text -> Text
 parseName s = Text.dropEnd ((Text.length . parseVersion $ s) + 1) s
 
--- @TODO: license can be a single license or an array of licenses
 data PackageMeta = PackageMeta
   { packageMetaPlatforms :: Maybe [Text]
   , packageMetaMaintainers :: Maybe [Text]
