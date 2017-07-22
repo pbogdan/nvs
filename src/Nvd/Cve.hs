@@ -10,6 +10,8 @@ import           Data.Aeson.Types
 import qualified Data.ByteString as Bytes
 import           Data.HashMap.Strict (HashMap)
 import qualified Data.HashMap.Strict as HashMap
+import           Data.Set (Set)
+import qualified Data.Set as Set
 import           Data.Vector (Vector)
 import qualified Data.Vector as Vec
 
@@ -17,7 +19,7 @@ data Cve = Cve
   { cveId :: Text
   , cveAffects :: [VendorData]
   , cveDescription :: Text
-  } deriving (Eq, Show)
+  } deriving (Eq, Ord, Show)
 
 instance FromJSON Cve where
   parseJSON (Object o) = do
@@ -34,7 +36,7 @@ instance FromJSON Cve where
 data VendorData = VendorData
   { vendorName :: Text
   , vendorProduct :: [VendorProduct]
-  } deriving (Eq, Show)
+  } deriving (Eq, Ord, Show)
 
 instance FromJSON VendorData where
   parseJSON (Object o) =
@@ -45,7 +47,7 @@ instance FromJSON VendorData where
 data VendorProduct = VendorProduct
   { vendorProductName :: Text
   , vendorProductVersion :: [Text]
-  } deriving (Eq, Show)
+  } deriving (Eq, Ord, Show)
 
 instance FromJSON VendorProduct where
   parseJSON (Object o) = do
@@ -73,11 +75,18 @@ cveProducts cve =
        (\p -> zip (repeat . vendorProductName $ p) (vendorProductVersion p))
        products
 
-cvesByProduct :: Vector Cve -> HashMap (Text, Text) Cve
+cvesByProduct :: Vector Cve -> HashMap (Text, Text) (Set Cve)
 cvesByProduct = Vec.foldl' go HashMap.empty
   where
-    go :: HashMap (Text, Text) Cve -> Cve -> HashMap (Text, Text) Cve
+    go ::
+         HashMap (Text, Text) (Set Cve) -> Cve -> HashMap (Text, Text) (Set Cve)
     go acc cve =
       let products = cveProducts cve
-          go' acc' x = HashMap.insert x cve acc'
+          go' acc' x =
+            let current = HashMap.lookup x acc'
+                updated =
+                  case current of
+                    Nothing -> Set.singleton cve
+                    Just cves -> Set.insert cve cves
+            in HashMap.insert x updated acc'
       in HashMap.union (foldl' go' HashMap.empty products) acc
