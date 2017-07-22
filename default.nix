@@ -4,15 +4,16 @@ let
 
   inherit (nixpkgs) pkgs;
 
-  f = { mkDerivation, aeson, attoparsec, base, bytestring, lucid
-      , protolude, stdenv, text, unordered-containers, vector
+  f = { mkDerivation, aeson, attoparsec, base, bytestring
+      , containers, lucid, protolude, stdenv, text, unordered-containers
+      , vector
       }:
       mkDerivation {
         pname = "nix-cve";
         version = "0.1.0.0";
         src = ./.;
         libraryHaskellDepends = [
-          aeson attoparsec base bytestring lucid protolude text
+          aeson attoparsec base bytestring containers lucid protolude text
           unordered-containers vector
         ];
         homepage = "https://github.com/pbogdan/nix-cve";
