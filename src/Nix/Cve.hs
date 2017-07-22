@@ -1,6 +1,6 @@
 module Nix.Cve where
 
-import           Protolude
+import           Protolude hiding (link)
 
 import qualified Data.HashMap.Strict as HashMap
 import           Distribution.Package
@@ -9,6 +9,8 @@ import           Lucid.Base
 import           Lucid.Bootstrap
 import           Nvd.Cve
 
+-- @TODO: semantics of "-" in package / product version are unclear..
+-- @TODO: spit out maintainers
 report :: FilePath -> FilePath -> IO ()
 report cvePath pkgsPath = do
   cves <- parseCves cvePath
@@ -42,7 +44,14 @@ report cvePath pkgsPath = do
         tbody_ $
           for_ (sortBy (compare `on` packageName . fst) vulns) $ \(pkg, cve) ->
             tr_ $ do
-              td_ (toHtml . packageName $ pkg)
+              td_ $ do
+                let pName = packageName pkg
+                    mLink = packageUrl pkg
+                    html =
+                      case mLink of
+                        Nothing -> toHtml pName
+                        Just link -> a_ [href_ link] (toHtml pName)
+                html
               td_ (toHtml . packageVersion $ pkg)
               td_
                 (a_
