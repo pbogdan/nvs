@@ -19,6 +19,7 @@ cabal-version:       >=1.10
 library
   exposed-modules:     
     Nvd.Cve
+    Nix.Cve
     Distribution.Package
     Distribution.Maintainers
   -- other-modules:       
