@@ -12,6 +12,8 @@ library
     exposed-modules:
         Nvd.Cve
         Nix.Cve
+        Nix.Cve.Cli
+        Nix.Cve.Cli.Opts
         Distribution.Package
         Distribution.Maintainers
     build-depends:
@@ -24,9 +26,24 @@ library
         vector >=0.11.0 && <0.12,
         unordered-containers >=0.2.8 && <0.3,
         lucid >=2.9.8 && <2.10,
-        protolude >=0.1.10 && <0.2
+        protolude >=0.1.10 && <0.2,
+        optparse-applicative >= 0.13 && < 0.14,
+        shell-cmd >= 0.1 && < 0.2,
+        temporary >= 1.2 && < 1.3,
+        monad-logger >= 0.3 && < 0.4,
+        raw-strings-qq >= 1.1 && < 1.2
     default-language: Haskell2010
     default-extensions: OverloadedStrings NoImplicitPrelude
     hs-source-dirs: src
     ghc-options: -Wall
 
+executable nix-cve
+    build-depends:
+        base >=4.9 && <4.10,
+        protolude >=0.1.10 && <0.2,
+        nix-cve
+    default-language: Haskell2010
+    default-extensions: OverloadedStrings NoImplicitPrelude
+    hs-source-dirs: app
+    main-is: Main.hs
+    ghc-options: -Wall
