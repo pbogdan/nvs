@@ -101,3 +101,9 @@ parsePackages path = do
   where
     go :: HashMap Text Package -> Package -> HashMap Text Package
     go acc x = HashMap.insert (packageName x) x acc
+
+packageUrl :: Package -> Maybe Text
+packageUrl pkg =
+  let position = packageMetaPosition . packageMeta $ pkg
+      path = fst . Text.breakOn ":" . snd . Text.breakOn "/pkgs" <$> position
+  in ("https://github.com/NixOS/nixpkgs/blob/release-17.03/" <>) <$> path
