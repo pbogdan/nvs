@@ -2,9 +2,11 @@ module Nix.Cve where
 
 import           Protolude hiding (link)
 
+import           Data.HashMap.Strict (HashMap)
 import qualified Data.HashMap.Strict as HashMap
 import           Data.Set (Set)
 import qualified Data.Set as Set
+import           Distribution.Maintainers
 import           Distribution.Package
 import           Lucid hiding (for_)
 import           Lucid.Base
@@ -12,10 +14,11 @@ import           Lucid.Bootstrap
 import           Nvd.Cve
 
 -- @TODO: semantics of "-" in package / product version are unclear..
-report :: FilePath -> FilePath -> IO ()
-report cvePath pkgsPath = do
+report :: FilePath -> FilePath -> FilePath -> IO ()
+report cvePath pkgsPath mtsPath = do
   cves <- parseCves cvePath
   pkgs <- parsePackages pkgsPath
+  mts <- parseMaintainers mtsPath
   let byProduct = cvesByProduct cves
       go :: [(Package, Set Cve)] -> Package -> [(Package, Set Cve)]
       go acc p =
@@ -70,4 +73,22 @@ report cvePath pkgsPath = do
                   p_ $ b_ "Package maintainers:"
                   ul_ $
                     for_ (packageMetaMaintainers . packageMeta $ pkg) $ \maintainers ->
-                      for_ maintainers $ \maintainer -> li_ (toHtml maintainer)
+                      for_ maintainers $ \maintainer ->
+                        li_ (renderMaintainer maintainer mts)
+
+renderMaintainer :: Monad m => Text -> HashMap Text Maintainer -> HtmlT m ()
+renderMaintainer mt mts =
+  let mMt = findMaintainer mt mts
+  in case mMt of
+       Nothing -> toHtml mt
+       Just mt' ->
+         toHtml (maintainerName mt') <> toHtml (" " :: Text) <>
+         toHtml ("<" :: Text) <>
+         a_
+           [href_ ("mailto:" <> maintainerEmail mt')]
+           (toHtml (maintainerEmail mt')) <>
+         toHtml (">" :: Text) <>
+         toHtml (" " :: Text) <>
+         a_
+           [href_ ("https://github.com/" <> maintainerHandle mt')]
+           (toHtml ("@" <> maintainerHandle mt'))
