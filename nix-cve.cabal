@@ -10,12 +10,12 @@ author: Piotr Bogdan
 
 library
     exposed-modules:
-        Nvd.Cve
-        Nix.Cve.Report
+        Distribution.Maintainers
+        Distribution.Package
         Nix.Cve.Cli
         Nix.Cve.Cli.Opts
-        Distribution.Package
-        Distribution.Maintainers
+        Nix.Cve.Report
+        Nvd.Cve
     build-depends:
         base >=4.9 && <4.10,
         aeson >=1.0.2 && <1.1,
