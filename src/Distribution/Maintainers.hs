@@ -1,4 +1,8 @@
-module Distribution.Maintainers where
+module Distribution.Maintainers
+  ( Maintainer(..)
+  , parseMaintainers
+  , findMaintainer
+  ) where
 
 import           Protolude hiding (handle)
 

@@ -1,4 +1,11 @@
-module Distribution.Package where
+module Distribution.Package
+  ( Package(..)
+  , packageUrl
+  , PackageMeta(..)
+  , PackageLicense(..)
+  , LicenseDetails(..)
+  , parsePackages
+  ) where
 
 import           Protolude
 

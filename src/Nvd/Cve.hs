@@ -1,6 +1,9 @@
-{-# LANGUAGE ScopedTypeVariables #-}
-
-module Nvd.Cve where
+module Nvd.Cve
+  ( Cve(..)
+  , VendorData(..)
+  , parseCves
+  , cvesByProduct
+  ) where
 
 import           Protolude
 
