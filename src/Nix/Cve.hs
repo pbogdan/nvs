@@ -13,7 +13,6 @@ import           Nvd.Cve
 
 -- @TODO: semantics of "-" in package / product version are unclear..
 -- @TODO: spit out maintainers
--- @TODO: account for multiple possible CVEs per package
 report :: FilePath -> FilePath -> IO ()
 report cvePath pkgsPath = do
   cves <- parseCves cvePath
@@ -34,7 +33,11 @@ report cvePath pkgsPath = do
     doctype_
     head_ $ do
       meta_ [makeAttribute "charset" "utf-8"]
-      link_ [rel_ "stylesheet", href_ "css/bootstrap.min.css"]
+      link_
+        [ rel_ "stylesheet"
+        , href_
+            "https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css"
+        ]
     body_ $
       container_ $
       table_ [class_ "table"] $ do
