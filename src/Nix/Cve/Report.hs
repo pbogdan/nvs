@@ -1,4 +1,4 @@
-module Nix.Cve where
+module Nix.Cve.Report where
 
 import           Protolude hiding (link)
 

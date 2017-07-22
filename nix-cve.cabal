@@ -11,7 +11,7 @@ author: Piotr Bogdan
 library
     exposed-modules:
         Nvd.Cve
-        Nix.Cve
+        Nix.Cve.Report
         Nix.Cve.Cli
         Nix.Cve.Cli.Opts
         Distribution.Package

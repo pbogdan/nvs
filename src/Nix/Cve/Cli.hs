@@ -6,7 +6,7 @@ import Protolude
 
 import Control.Monad.Logger
 import Data.String (String)
-import Nix.Cve
+import Nix.Cve.Report
 import Nix.Cve.Cli.Opts
 import Options.Applicative (execParser)
 import Shell
