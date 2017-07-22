@@ -20,6 +20,7 @@ library
   exposed-modules:     
     Nvd.Cve
     Distribution.Package
+    Distribution.Maintainers
   -- other-modules:       
   -- other-extensions:    
   build-depends:       base >=4.9 && <4.10
