@@ -12,7 +12,6 @@ import           Lucid.Bootstrap
 import           Nvd.Cve
 
 -- @TODO: semantics of "-" in package / product version are unclear..
--- @TODO: spit out maintainers
 report :: FilePath -> FilePath -> IO ()
 report cvePath pkgsPath = do
   cves <- parseCves cvePath
@@ -49,7 +48,7 @@ report cvePath pkgsPath = do
             th_ "CVE description"
         tbody_ $
           for_ (sortBy (compare `on` packageName . fst) vulns) $ \(pkg, cves') ->
-            for_ (Set.toAscList cves') $ \cve ->
+            for_ (Set.toAscList cves') $ \cve -> do
               tr_ $ do
                 td_ $ do
                   let pName = packageName pkg
@@ -65,3 +64,10 @@ report cvePath pkgsPath = do
                      [href_ ("https://nvd.nist.gov/vuln/detail/" <> cveId cve)]
                      (toHtml . cveId $ cve))
                 td_ (toHtml . cveDescription $ cve)
+              tr_ $ do
+                td_ [colspan_ "3"] ""
+                td_ $ do
+                  p_ $ b_ "Package maintainers:"
+                  ul_ $
+                    for_ (packageMetaMaintainers . packageMeta $ pkg) $ \maintainers ->
+                      for_ maintainers $ \maintainer -> li_ (toHtml maintainer)
