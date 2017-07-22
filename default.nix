@@ -1,31 +1,8 @@
-{ nixpkgs ? import <nixpkgs> {}, compiler ? "default" }:
-
-let
-
-  inherit (nixpkgs) pkgs;
-
-  f = { mkDerivation, aeson, attoparsec, base, bytestring
-      , containers, lucid, protolude, stdenv, text, unordered-containers
-      , vector
-      }:
-      mkDerivation {
-        pname = "nix-cve";
-        version = "0.1.0.0";
-        src = ./.;
-        libraryHaskellDepends = [
-          aeson attoparsec base bytestring containers lucid protolude text
-          unordered-containers vector
-        ];
-        homepage = "https://github.com/pbogdan/nix-cve";
-        license = stdenv.lib.licenses.bsd3;
-      };
-
-  haskellPackages = if compiler == "default"
-                       then pkgs.haskellPackages
-                       else pkgs.haskell.packages.${compiler};
-
-  drv = haskellPackages.callPackage f {};
-
-in
-
-  if pkgs.lib.inNixShell then drv.env else drv
+{ nixpkgs ? import <nixpkgs> {}, compiler ? "ghc802" }:
+let shell-cmd-src = (nixpkgs.fetchgit {
+  url = "https://github.com/pbogdan/shell-cmd";
+  rev = "24f058f9ba188aef127940004b63222db359443e";
+});
+in nixpkgs.pkgs.haskell.packages.${compiler}.callPackage ./nix-cve.nix {
+  shell-cmd = import (shell-cmd-src) { };
+}
