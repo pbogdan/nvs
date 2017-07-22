@@ -26,13 +26,14 @@ data Cve = Cve
 
 instance FromJSON Cve where
   parseJSON (Object o) = do
-    dd <- o .: "cve" >>= (.: "description") >>= (.: "description_data")
+    let cve = o .: "cve"
+    dd <- cve >>= (.: "description") >>= (.: "description_data")
     desc <-
       case Vec.head dd of
         Object o' -> o' .: "value"
-        _ -> fail "lolz"
-    Cve <$> (o .: "cve" >>= (.: "CVE_data_meta") >>= (.: "ID")) <*>
-      (o .: "cve" >>= (.: "affects") >>= (.: "vendor") >>= (.: "vendor_data")) <*>
+        _ -> fail "description_data must be an object"
+    Cve <$> (cve >>= (.: "CVE_data_meta") >>= (.: "ID")) <*>
+      (cve >>= (.: "affects") >>= (.: "vendor") >>= (.: "vendor_data")) <*>
       pure desc
   parseJSON x = panic . show $ x
 
@@ -59,7 +60,7 @@ instance FromJSON VendorProduct where
       Vec.forM meh $ \x ->
         case x of
           Object o' -> o' .: "version_value"
-          _ -> fail "lolz"
+          _ -> fail "version_data must be a list of objects"
     VendorProduct <$> o .: "product_name" <*> (pure . Vec.toList $ vers)
   parseJSON x = panic . show $ x
 
