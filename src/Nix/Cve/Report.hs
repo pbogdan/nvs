@@ -13,9 +13,21 @@ import           Lucid.Base
 import           Lucid.Bootstrap
 import           Nvd.Cve
 
+
+data RenderMode
+  = HTML
+  | Markdown
+  deriving (Eq, Show)
+
 -- @TODO: semantics of "-" in package / product version are unclear..
-report :: FilePath -> FilePath -> FilePath -> FilePath -> IO ()
-report cvePath pkgsPath mtsPath outPath = do
+report ::
+     FilePath -- ^ path to NVD JSON feed
+  -> FilePath -- ^ path to nixpkgs checkout
+  -> FilePath -- ^ path to maintainers.json file
+  -> FilePath -- ^ output path for the generated report
+  -> RenderMode -- ^ what type of output to generate
+  -> IO ()
+report cvePath pkgsPath mtsPath outPath mode = do
   cves <- parseCves cvePath
   pkgs <- parsePackages pkgsPath
   mts <- parseMaintainers mtsPath
@@ -31,6 +43,15 @@ report cvePath pkgsPath mtsPath outPath = do
              (Nothing, Just cve) -> (p, cve) : acc
              (Just cve, Just cve') -> (p, cve) : (p, cve') : acc
       vulns = HashMap.foldl' go [] pkgs
+      renderer =
+        case mode of
+          HTML -> renderHTML
+          Markdown -> undefined
+  renderer vulns mts outPath
+
+renderHTML ::
+     [(Package, Set Cve)] -> HashMap Text Maintainer -> FilePath -> IO ()
+renderHTML vulns mts outPath =
   renderToFile outPath $ do
     doctype_
     head_ $ do

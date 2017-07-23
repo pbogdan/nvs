@@ -1,7 +1,7 @@
 { mkDerivation, aeson, attoparsec, base, bytestring, containers
 , lucid, monad-logger, optparse-applicative, protolude
 , raw-strings-qq, shell-cmd, stdenv, temporary, text
-, unordered-containers, vector
+, unordered-containers, vector, ghcid
 }:
 mkDerivation {
   pname = "nix-cve";
@@ -12,7 +12,7 @@ mkDerivation {
   libraryHaskellDepends = [
     aeson attoparsec base bytestring containers lucid monad-logger
     optparse-applicative protolude raw-strings-qq shell-cmd temporary
-    text unordered-containers vector
+    text unordered-containers vector ghcid
   ];
   executableHaskellDepends = [ base protolude ];
   homepage = "https://github.com/pbogdan/nix-cve";

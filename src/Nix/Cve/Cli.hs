@@ -19,7 +19,7 @@ defaultMain =
   execParser (parseOptions `withInfo` "Experimental CVE scanner for nixpkgs")
 
 run :: Options -> IO ()
-run (Options nvdFeed nixpkgs out) =
+run (Options nvdFeed nixpkgs mode out) =
   runStderrLoggingT $
   withSystemTempDirectory "nix-cve" $ \tmpDir -> do
     ret <-
@@ -66,3 +66,4 @@ run (Options nvdFeed nixpkgs out) =
           (toS tmpDir <> "/packages.json")
           (toS tmpDir <> "/maintainers.json")
           (toS out)
+          mode

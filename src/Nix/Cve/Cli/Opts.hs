@@ -6,13 +6,15 @@ module Nix.Cve.Cli.Opts
 
 import Protolude
 
+import Nix.Cve.Report
 import Options.Applicative
 
 data Options =
-  -- | The fields specify path to NVD JSON feed, path to nixpkgs checkout, and
-  -- the output path for the generated report.
+  -- | The fields specify path to NVD JSON feed, path to nixpkgs checkout,
+  -- rendering mode and the output path for the generated report.
   Options Text
           Text
+          RenderMode
           Text
   deriving (Eq, Show)
 
@@ -26,6 +28,7 @@ parseOptions =
   (toS <$>
    strOption
      (long "nixpkgs" <> metavar "nixpkgs" <> help "Path to nixpkgs checkout")) <*>
+  flag HTML Markdown (long "markdown" <> help "render markdown instead of HTML") <*>
   (toS <$>
    argument str (metavar "file" <> help "Output path for the generated report"))
 
