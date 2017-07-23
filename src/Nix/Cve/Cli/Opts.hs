@@ -1,3 +1,16 @@
+{-|
+Module      : Nix.Cve.Cli.Opts
+Description : Command line arguments parser for nix-cve command line interface.
+Copyright   : (c) Piotr Bogdan, 2017
+License     : BSD3
+Maintainer  : ppbogdan@gmail.com
+Stability   : experimental
+Portability : Unknown
+
+Command line arguments parser for nix-cve command line interface.
+
+-}
+
 module Nix.Cve.Cli.Opts
   ( Options(..)
   , parseOptions

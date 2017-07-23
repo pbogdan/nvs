@@ -1,3 +1,15 @@
+{-|
+Module      : Nvd.Cve
+Description : Utilities to interface with JSON feeds provided by NVD.
+Copyright   : (c) Piotr Bogdan, 2017
+License     : BSD3
+Maintainer  : ppbogdan@gmail.com
+Stability   : experimental
+Portability : Unknown
+
+Utilities to interface with JSON feeds provided by NVD.
+
+-}
 {-# LANGUAGE DeriveGeneric #-}
 
 module Nvd.Cve
@@ -22,10 +34,13 @@ import           Data.String (String)
 import           Data.Vector (Vector)
 import qualified Data.Vector as Vec
 
+-- | Representation of a CVE parsed out of NVD feed. Currently only fields
+-- directly needed by this project are extracted, with the rest of them
+-- discarded.
 data Cve = Cve
-  { cveId :: Text
-  , cveAffects :: [VendorData]
-  , cveDescription :: Text
+  { cveId :: Text -- ^ The ID of the CVE such as CVE-2016-5253.
+  , cveAffects :: [VendorData] -- ^ List of affected vendors and products.
+  , cveDescription :: Text -- ^ Description of the CVE.
   } deriving (Eq, Generic, Ord, Show)
 
 instance FromJSON Cve where
@@ -44,9 +59,10 @@ instance FromJSON Cve where
 instance ToJSON Cve where
   toJSON = genericToJSON $ aesonDrop (length ("Cve" :: String)) camelCase
 
+-- | Name and list of vendor's products.
 data VendorData = VendorData
-  { vendorName :: Text
-  , vendorProduct :: [VendorProduct]
+  { vendorName :: Text -- ^ The name of the vendor.
+  , vendorProduct :: [VendorProduct] -- ^ List of vendor's products.
   } deriving (Eq, Generic, Ord, Show)
 
 instance FromJSON VendorData where
@@ -58,9 +74,11 @@ instance FromJSON VendorData where
 instance ToJSON VendorData where
   toJSON = genericToJSON $ aesonDrop (length ("VendorData" :: String)) camelCase
 
+-- | Description of a vendor's product, including its name and a list of
+-- versions.
 data VendorProduct = VendorProduct
-  { vendorProductName :: Text
-  , vendorProductVersion :: [Text]
+  { vendorProductName :: Text -- ^ Name of the product.
+  , vendorProductVersion :: [Text] -- ^ List of product versions.
   } deriving (Eq, Generic, Ord, Show)
 
 instance FromJSON VendorProduct where
@@ -78,13 +96,21 @@ instance ToJSON VendorProduct where
   toJSON =
     genericToJSON $ aesonDrop (length ("VendorProduct" :: String)) camelCase
 
-parseCves :: MonadIO m => FilePath -> m (Vector Cve)
+-- | Utility function for parsing CVE information out of NVD JSON feed.
+parseCves ::
+     MonadIO m
+  => FilePath -- ^ Path to the NVD JSON feed file
+  -> m (Vector Cve)
 parseCves path = do
   s <- liftIO . Bytes.readFile $ path
   let parser = withObject "cves" $ \o -> o .: "CVE_Items" >>= parseJSON
   let mRet = join (parseEither parser <$> eitherDecodeStrict s)
   return $ either (panic . toS) identity mRet
 
+-- | Given a Cve return a list of tuples representing products' names and
+-- versions. For example given a Cve an entry in the list may look as follows:
+--
+-- > ("ffmpeg", "2.8.11")
 cveProducts :: Cve -> [(Text, Text)]
 cveProducts cve =
   let affected = cveAffects cve
@@ -93,6 +119,14 @@ cveProducts cve =
        (\p -> zip (repeat . vendorProductName $ p) (vendorProductVersion p))
        products
 
+-- | Given a vector of CVEs produced by 'parseCves' return a hash map keyed off
+-- (name, version) tuple where the values are sets of CVEs that affect that
+-- particular name / version variant. An example entry may contain
+--
+-- > ("ffmpeg", "2.8.11")
+--
+-- key, with the corresponding value being a set of CVEs that affect
+-- ffmpeg-2.8.11.
 cvesByProduct :: Vector Cve -> HashMap (Text, Text) (Set Cve)
 cvesByProduct = Vec.foldl' go HashMap.empty
   where

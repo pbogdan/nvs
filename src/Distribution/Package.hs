@@ -1,3 +1,15 @@
+{-|
+Module      : Distribution.Package
+Description : Utilities to deal with package information extracted from nixpkgs.
+Copyright   : (c) Piotr Bogdan, 2017
+License     : BSD3
+Maintainer  : ppbogdan@gmail.com
+Stability   : experimental
+Portability : Unknown
+
+This module provides simple utilities to work with JSON representation of
+nixpkgs packages.
+-}
 {-# LANGUAGE DeriveGeneric #-}
 
 module Distribution.Package
@@ -22,11 +34,13 @@ import           Data.String (String)
 import qualified Data.Text as Text
 import qualified Data.Vector as Vec
 
+-- | Main data type for representing package information.
 data Package = Package
-  { packageSystem :: Text
-  , packageName :: Text
-  , packageVersion :: Text
-  , packageMeta :: PackageMeta
+  { packageSystem :: Text -- ^ The system on which the information has been
+                          -- extracted
+  , packageName :: Text -- ^ The name of the package
+  , packageVersion :: Text -- ^ The version of the package
+  , packageMeta :: PackageMeta -- ^ The meta data of the package
   } deriving (Eq, Generic, Show)
 
 instance FromJSON Package where
@@ -39,6 +53,9 @@ instance FromJSON Package where
 instance ToJSON Package where
   toJSON = genericToJSON $ aesonDrop (length ("Package" :: String)) camelCase
 
+-- | Helper function to extract package version. This follows the same semantics
+-- as seen in nix -
+-- https://github.com/NixOS/nix/blob/c94f3d5575d7af5403274d1e9e2f3c9d72989751/src/libexpr/names.cc#L14
 parseVersion :: Text -> Text
 parseVersion s =
   let prefix = Text.takeWhile (/= '-') s
@@ -52,17 +69,23 @@ parseVersion s =
               then Text.drop 1 suffix
               else parseVersion . Text.drop 1 $ suffix
 
+-- | Helper function to extract package name. This follows the same semantics
+-- as seen in nix -
+-- https://github.com/NixOS/nix/blob/c94f3d5575d7af5403274d1e9e2f3c9d72989751/src/libexpr/names.cc#L14
 parseName :: Text -> Text
 parseName s = Text.dropEnd ((Text.length . parseVersion $ s) + 1) s
 
+-- | Package meta data.
 data PackageMeta = PackageMeta
-  { packageMetaPlatforms :: Maybe [Text]
-  , packageMetaMaintainers :: Maybe [Text]
-  , packageMetaDescription :: Maybe Text
-  , packageMetaLicense :: Maybe [PackageLicense]
-  , packageMetaPosition :: Maybe Text
-  , packageMetaHomepage :: Maybe [Text]
-  , packageMetaLongDescription :: Maybe Text
+  { packageMetaPlatforms :: Maybe [Text] -- ^ list platforms on which the
+                                         -- package is supported
+  , packageMetaMaintainers :: Maybe [Text] -- ^ list of package maintainers
+  , packageMetaDescription :: Maybe Text -- ^ package description
+  , packageMetaLicense :: Maybe [PackageLicense] -- ^ licenses of the package
+  , packageMetaPosition :: Maybe Text -- ^ source position of where the package
+                                      -- is defined within nixpkgs
+  , packageMetaHomepage :: Maybe [Text] -- ^ package homepage
+  , packageMetaLongDescription :: Maybe Text -- ^ long description
   } deriving (Eq, Generic, Show)
 
 instance FromJSON PackageMeta where
@@ -83,6 +106,9 @@ instance ToJSON PackageMeta where
   toJSON =
     genericToJSON $ aesonDrop (length ("PackageMeta" :: String)) camelCase
 
+-- | Data type representing license of a package. The license may be a simple
+-- string, such as "gpl2", represented with the 'BasicLicence' constructor, or
+-- may take more detailed form of 'DetailedLicense'.
 data PackageLicense
   = DetailedLicense LicenseDetails
   | BasicLicense Text
@@ -97,11 +123,15 @@ instance FromJSON PackageLicense where
   parseJSON (String s) = pure . BasicLicense $ s
   parseJSON x = panic . show $ x
 
+-- | Detailed representation of a license.
 data LicenseDetails = LicenseDetails
-  { detailedLicenseShortName :: Maybe Text
-  , detailedLicenseFullName :: Maybe Text
-  , detailedLicenseUrl :: Maybe Text
-  , detailedLicenseSpdxId :: Maybe Text
+  { detailedLicenseShortName :: Maybe Text -- ^ short name such as "gpl2"
+  , detailedLicenseFullName :: Maybe Text -- ^ full name such as "GNU General
+                                          -- Public License v2.0"
+  , detailedLicenseUrl :: Maybe Text -- ^ URL at which the license may be
+                                     -- obtained
+  , detailedLicenseSpdxId :: Maybe Text -- ^ license id within SPDX license list
+                                        -- - https://spdx.org/licenses/
   } deriving (Eq, Generic, Show)
 
 instance FromJSON LicenseDetails where
@@ -114,6 +144,12 @@ instance ToJSON LicenseDetails where
   toJSON =
     genericToJSON $ aesonDrop (length ("LicenseDetails" :: String)) camelCase
 
+-- | Parse package informataion out of a JSON file. The expected format of the
+-- JSON file is that produced by
+--
+-- > nix-env -qaP --json '*'
+--
+-- command. The result is a hash map keyed off packages' name.
 parsePackages :: (MonadIO m) => FilePath -> m (HashMap Text Package)
 parsePackages path = do
   s <- liftIO . Bytes.readFile $ path
@@ -128,6 +164,9 @@ parsePackages path = do
     go :: HashMap Text Package -> Package -> HashMap Text Package
     go acc x = HashMap.insert (packageName x) x acc
 
+-- | GitHub link to the file containing Nix expression that defined the
+-- package. The information required to build the link may not be present in
+-- package's meta data in which case 'Nothing' is returned.
 packageUrl :: Package -> Maybe Text
 packageUrl pkg =
   let position = packageMetaPosition . packageMeta $ pkg

@@ -1,3 +1,15 @@
+{-|
+Module      : Nix.Cve.Report
+Description : Report rendering utilities.
+Copyright   : (c) Piotr Bogdan, 2017
+License     : BSD3
+Maintainer  : ppbogdan@gmail.com
+Stability   : experimental
+Portability : Unknown
+
+Report rendering utilities.
+
+-}
 {-# LANGUAGE DeriveGeneric #-}
 
 module Nix.Cve.Report where
@@ -22,6 +34,7 @@ import           Paths_nix_cve
 import           System.Directory
 import           Text.EDE
 
+-- | Specifies rendering mode, or more precisely the output format.
 data RenderMode
   = HTML
   | Markdown
@@ -37,6 +50,9 @@ instance ToJSON CveWithPackage where
     genericToJSON $ aesonDrop (length ("CveWithPackage" :: String)) camelCase
 
 -- @TODO: semantics of "-" in package / product version are unclear..
+
+-- | Produce a human readable report about CVEs that may be present in the given
+-- package set.
 report ::
      FilePath -- ^ path to NVD JSON feed
   -> FilePath -- ^ path to packages.json file

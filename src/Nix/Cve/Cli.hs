@@ -1,3 +1,16 @@
+{-|
+Module      : Nix.Cve.Cli
+Description : Command line interface to nix-cve.
+Copyright   : (c) Piotr Bogdan, 2017
+License     : BSD3
+Maintainer  : ppbogdan@gmail.com
+Stability   : experimental
+Portability : Unknown
+
+Command line interface to nix-cve.
+
+-}
+
 {-# LANGUAGE QuasiQuotes #-}
 
 module Nix.Cve.Cli where
