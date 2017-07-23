@@ -1,3 +1,5 @@
+{-# LANGUAGE DeriveGeneric #-}
+
 module Nvd.Cve
   ( Cve(..)
   , VendorData(..)
@@ -9,12 +11,14 @@ import           Protolude
 
 import           Control.Monad
 import           Data.Aeson
+import           Data.Aeson.Casing
 import           Data.Aeson.Types
 import qualified Data.ByteString as Bytes
 import           Data.HashMap.Strict (HashMap)
 import qualified Data.HashMap.Strict as HashMap
 import           Data.Set (Set)
 import qualified Data.Set as Set
+import           Data.String (String)
 import           Data.Vector (Vector)
 import qualified Data.Vector as Vec
 
@@ -22,7 +26,7 @@ data Cve = Cve
   { cveId :: Text
   , cveAffects :: [VendorData]
   , cveDescription :: Text
-  } deriving (Eq, Ord, Show)
+  } deriving (Eq, Generic, Ord, Show)
 
 instance FromJSON Cve where
   parseJSON (Object o) = do
@@ -37,10 +41,13 @@ instance FromJSON Cve where
       pure desc
   parseJSON x = panic . show $ x
 
+instance ToJSON Cve where
+  toJSON = genericToJSON $ aesonDrop (length ("Cve" :: String)) camelCase
+
 data VendorData = VendorData
   { vendorName :: Text
   , vendorProduct :: [VendorProduct]
-  } deriving (Eq, Ord, Show)
+  } deriving (Eq, Generic, Ord, Show)
 
 instance FromJSON VendorData where
   parseJSON (Object o) =
@@ -48,10 +55,13 @@ instance FromJSON VendorData where
     (o .: "product" >>= (.: "product_data"))
   parseJSON x = panic . show $ x
 
+instance ToJSON VendorData where
+  toJSON = genericToJSON $ aesonDrop (length ("VendorData" :: String)) camelCase
+
 data VendorProduct = VendorProduct
   { vendorProductName :: Text
   , vendorProductVersion :: [Text]
-  } deriving (Eq, Ord, Show)
+  } deriving (Eq, Generic, Ord, Show)
 
 instance FromJSON VendorProduct where
   parseJSON (Object o) = do
@@ -63,6 +73,10 @@ instance FromJSON VendorProduct where
           _ -> fail "version_data must be a list of objects"
     VendorProduct <$> o .: "product_name" <*> (pure . Vec.toList $ vers)
   parseJSON x = panic . show $ x
+
+instance ToJSON VendorProduct where
+  toJSON =
+    genericToJSON $ aesonDrop (length ("VendorProduct" :: String)) camelCase
 
 parseCves :: MonadIO m => FilePath -> m (Vector Cve)
 parseCves path = do

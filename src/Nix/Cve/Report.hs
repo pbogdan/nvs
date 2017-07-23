@@ -1,28 +1,45 @@
+{-# LANGUAGE DeriveGeneric #-}
+
 module Nix.Cve.Report where
 
 import           Protolude hiding (link)
 
+import           Data.Aeson
+import           Data.Aeson.Casing
+import qualified Data.ByteString as Bytes
 import           Data.HashMap.Strict (HashMap)
 import qualified Data.HashMap.Strict as HashMap
 import           Data.Set (Set)
 import qualified Data.Set as Set
+import           Data.String (String)
 import           Distribution.Maintainers
 import           Distribution.Package
 import           Lucid hiding (for_)
 import           Lucid.Base
 import           Lucid.Bootstrap
 import           Nvd.Cve
-
+import           Paths_nix_cve
+import           System.Directory
+import           Text.EDE
 
 data RenderMode
   = HTML
   | Markdown
   deriving (Eq, Show)
 
+data CveWithPackage = CveWithPackage
+  { cveWithPackageCve :: Cve
+  , cveWithPackagePackage :: Package
+  } deriving (Eq, Generic, Show)
+
+instance ToJSON CveWithPackage where
+  toJSON =
+    genericToJSON $ aesonDrop (length ("CveWithPackage" :: String)) camelCase
+
 -- @TODO: semantics of "-" in package / product version are unclear..
 report ::
      FilePath -- ^ path to NVD JSON feed
-  -> FilePath -- ^ path to nixpkgs checkout
+  -> FilePath -- ^ path to packages.json file
   -> FilePath -- ^ path to maintainers.json file
   -> FilePath -- ^ output path for the generated report
   -> RenderMode -- ^ what type of output to generate
@@ -46,7 +63,7 @@ report cvePath pkgsPath mtsPath outPath mode = do
       renderer =
         case mode of
           HTML -> renderHTML
-          Markdown -> undefined
+          Markdown -> renderMarkdown
   renderer vulns mts outPath
 
 renderHTML ::
@@ -123,3 +140,31 @@ renderMaintainer mt mts =
          a_
            [href_ ("https://github.com/" <> maintainerHandle mt')]
            (toHtml ("@" <> maintainerHandle mt'))
+
+findTemplate :: FilePath -> IO FilePath
+findTemplate path = do
+  dataDirPath <- getDataFileName path
+  haveLocal <- doesFileExist path
+  if haveLocal
+    then return path
+    else return dataDirPath
+
+renderMarkdown ::
+     [(Package, Set Cve)] -> HashMap Text Maintainer -> FilePath -> IO ()
+renderMarkdown vulns _mts outPath = do
+  let trolz = map (second Set.toAscList) vulns
+      trolz' =
+        map (uncurry CveWithPackage . swap) .
+        sortBy (compare `on` packageName . fst) .
+        concatMap (\(p, cves) -> map (\cve -> (p, cve)) cves) $
+        trolz
+      Just env =
+        fromValue . toJSON . HashMap.fromList $ [("cves" :: Text, trolz')]
+  tplFile <- findTemplate "templates/cves.ede"
+  tpl <- eitherParseFile tplFile
+  let ret = flip eitherRender env =<< tpl
+  case ret of
+    Left e -> do
+      putText $ "Rendering failed: " <> show e
+      exitFailure
+    Right out -> Bytes.writeFile (toS outPath) (toS out)

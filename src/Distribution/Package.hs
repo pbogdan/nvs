@@ -1,3 +1,5 @@
+{-# LANGUAGE DeriveGeneric #-}
+
 module Distribution.Package
   ( Package(..)
   , packageUrl
@@ -10,11 +12,13 @@ module Distribution.Package
 import           Protolude
 
 import           Data.Aeson
+import           Data.Aeson.Casing
 import           Data.Aeson.Types
 import qualified Data.ByteString as Bytes
 import           Data.Char
 import           Data.HashMap.Strict (HashMap)
 import qualified Data.HashMap.Strict as HashMap
+import           Data.String (String)
 import qualified Data.Text as Text
 import qualified Data.Vector as Vec
 
@@ -23,7 +27,7 @@ data Package = Package
   , packageName :: Text
   , packageVersion :: Text
   , packageMeta :: PackageMeta
-  } deriving (Eq, Show)
+  } deriving (Eq, Generic, Show)
 
 instance FromJSON Package where
   parseJSON (Object o) =
@@ -31,6 +35,9 @@ instance FromJSON Package where
     (parseVersion <$> o .: "name") <*>
     o .: "meta"
   parseJSON _ = mzero
+
+instance ToJSON Package where
+  toJSON = genericToJSON $ aesonDrop (length ("Package" :: String)) camelCase
 
 parseVersion :: Text -> Text
 parseVersion s =
@@ -56,7 +63,7 @@ data PackageMeta = PackageMeta
   , packageMetaPosition :: Maybe Text
   , packageMetaHomepage :: Maybe [Text]
   , packageMetaLongDescription :: Maybe Text
-  } deriving (Eq, Show)
+  } deriving (Eq, Generic, Show)
 
 instance FromJSON PackageMeta where
   parseJSON (Object o) =
@@ -72,10 +79,18 @@ instance FromJSON PackageMeta where
       singleton x = [x]
   parseJSON _ = mzero
 
+instance ToJSON PackageMeta where
+  toJSON =
+    genericToJSON $ aesonDrop (length ("PackageMeta" :: String)) camelCase
+
 data PackageLicense
   = DetailedLicense LicenseDetails
   | BasicLicense Text
-  deriving (Eq, Show)
+  deriving (Eq, Generic, Show)
+
+instance ToJSON PackageLicense where
+  toJSON =
+    genericToJSON $ aesonDrop (length ("PackageLicense" :: String)) camelCase
 
 instance FromJSON PackageLicense where
   parseJSON js@(Object _) = DetailedLicense <$> parseJSON js
@@ -87,13 +102,17 @@ data LicenseDetails = LicenseDetails
   , detailedLicenseFullName :: Maybe Text
   , detailedLicenseUrl :: Maybe Text
   , detailedLicenseSpdxId :: Maybe Text
-  } deriving (Eq, Show)
+  } deriving (Eq, Generic, Show)
 
 instance FromJSON LicenseDetails where
   parseJSON (Object o) =
     LicenseDetails <$> o .:? "shortName" <*> o .:? "fullName" <*> o .:? "url" <*>
     o .:? "spdxId"
   parseJSON x = panic . show $ x
+
+instance ToJSON LicenseDetails where
+  toJSON =
+    genericToJSON $ aesonDrop (length ("LicenseDetails" :: String)) camelCase
 
 parsePackages :: (MonadIO m) => FilePath -> m (HashMap Text Package)
 parsePackages path = do
