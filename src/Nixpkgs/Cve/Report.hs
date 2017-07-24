@@ -11,6 +11,7 @@ Report rendering utilities.
 
 -}
 {-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE TupleSections #-}
 
 module Nixpkgs.Cve.Report
   ( RenderMode(..)
@@ -74,12 +75,13 @@ report cvePath pkgsPath mtsPath outPath mode = do
       go acc p =
         let pVersion = packageVersion p
             pName = packageName p
-        in case ( HashMap.lookup (pName, pVersion) byProduct
-                , HashMap.lookup (pName, "*") byProduct) of
-             (Nothing, Nothing) -> acc
-             (Just cve, Nothing) -> (p, cve) : acc
-             (Nothing, Just cve) -> (p, cve) : acc
-             (Just cve, Just cve') -> (p, cve) : (p, cve') : acc
+            matches =
+              map (p, ) $
+              catMaybes
+                [ HashMap.lookup (pName, pVersion) byProduct
+                , HashMap.lookup (pName, "*") byProduct
+                ]
+        in acc ++ matches
       vulns = HashMap.foldl' go [] pkgs
       renderer =
         case mode of
