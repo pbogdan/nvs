@@ -19,7 +19,7 @@ $ nix-env -i ./result
 
 ### Prerequisites
 
-nvsrequires:
+nvs requires:
 
 1. A local nixpkgs checkout:
 
