@@ -53,3 +53,10 @@ $ nvs --nvd-feed /home/pbogdan/nvdcve-1.0-2017.json --nixpkgs /home/pbogdan/nixp
 ```
 
 will produce an HTML report in the current directory. Alternatively the `--markdown` switch produces a format more suitable for usage in GitHub issues.
+
+
+## Known issues
+
+- semantics of `-` version selector is unclear, commonly the selector has either a form of an exact version number such as `2.2.1` or `*` with the wildcard semantics. I wasn't able to find an explanation of what `-` means in this context.
+- there might be mismatches in product names and package names in packages. For example nixpkgs `vlc` package is present in NVD as `vlc_media_player`. I don't see a way of handling this automatically. One possible solution would be to create a manually created alias database.
+- from package updates perspective it would nice to know what version bump is needed to make the package CVE clean. For example a bump from `2.2.5` to `2.2.6` may clear particular CVE but introduce other(s) that's been addressed in `2.2.7`
