@@ -167,14 +167,14 @@ renderMaintainer mt mts =
 renderMarkdown ::
      [(Package, Set Cve)] -> HashMap Text Maintainer -> FilePath -> IO ()
 renderMarkdown vulns _mts outPath = do
-  let trolz = map (second Set.toAscList) vulns
-      trolz' =
+  let cves' =
         map (uncurry CveWithPackage . swap) .
         sortBy (compare `on` packageName . fst) .
-        concatMap (\(p, cves) -> map (\cve -> (p, cve)) cves) $
-        trolz
+        concatMap
+          ((\(p, cves) -> map (\cve -> (p, cve)) cves) . second Set.toAscList) $
+        vulns
       Just env =
-        fromValue . toJSON . HashMap.fromList $ [("cves" :: Text, trolz')]
+        fromValue . toJSON . HashMap.fromList $ [("cves" :: Text, cves')]
   let tpl = eitherParse markdownTemplate
   let ret = flip eitherRender env =<< tpl
   case ret of
