@@ -29,9 +29,8 @@ import           Distribution.Package
 import           Lucid hiding (for_)
 import           Lucid.Base
 import           Lucid.Bootstrap
+import           Nix.Cve.Report.Template
 import           Nvd.Cve
-import           Paths_nix_cve
-import           System.Directory
 import           Text.EDE
 
 -- | Specifies rendering mode, or more precisely the output format.
@@ -157,14 +156,6 @@ renderMaintainer mt mts =
            [href_ ("https://github.com/" <> maintainerHandle mt')]
            (toHtml ("@" <> maintainerHandle mt'))
 
-findTemplate :: FilePath -> IO FilePath
-findTemplate path = do
-  dataDirPath <- getDataFileName path
-  haveLocal <- doesFileExist path
-  if haveLocal
-    then return path
-    else return dataDirPath
-
 renderMarkdown ::
      [(Package, Set Cve)] -> HashMap Text Maintainer -> FilePath -> IO ()
 renderMarkdown vulns _mts outPath = do
@@ -176,8 +167,7 @@ renderMarkdown vulns _mts outPath = do
         trolz
       Just env =
         fromValue . toJSON . HashMap.fromList $ [("cves" :: Text, trolz')]
-  tplFile <- findTemplate "templates/cves.ede"
-  tpl <- eitherParseFile tplFile
+  let tpl = eitherParse markdownTemplate
   let ret = flip eitherRender env =<< tpl
   case ret of
     Left e -> do
