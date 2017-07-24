@@ -2,14 +2,14 @@
 
 {-|
 Module      : Nixpkgs.Cve.Cli
-Description : Command line interface to nix-cve.
+Description : Command line interface to nvs.
 Copyright   : (c) Piotr Bogdan, 2017
 License     : BSD3
 Maintainer  : ppbogdan@gmail.com
 Stability   : experimental
 Portability : Unknown
 
-Command line interface to nix-cve.
+Command line interface to nvs.
 
 -}
 
@@ -38,7 +38,7 @@ defaultMain =
 run :: Options -> IO ()
 run (Options nvdFeed nixpkgs mode out) =
   runStderrLoggingT $
-  withSystemTempDirectory "nix-cve" $ \tmpDir -> do
+  withSystemTempDirectory "nvs" $ \tmpDir -> do
     ret <-
       runExceptT $ do
         generateMaintainers nixpkgs tmpDir

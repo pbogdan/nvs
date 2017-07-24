@@ -1,11 +1,11 @@
-name: nix-cve
+name: nvs
 version: 0.1.0.0
 cabal-version: >=1.10
 build-type: Simple
 license: BSD3
 license-file: LICENSE
 maintainer: ppbogdan@gmail.com
-homepage: https://github.com/pbogdan/nix-cve
+homepage: https://github.com/pbogdan/nixpkgs-vuln-scanner
 author: Piotr Bogdan
 data-files:
   templates/*.ede
@@ -43,11 +43,11 @@ library
     hs-source-dirs: src
     ghc-options: -Wall
 
-executable nix-cve
+executable nvs
     build-depends:
         base >=4.9 && <4.10,
         protolude >=0.1.10 && <0.2,
-        nix-cve
+        nvs
     default-language: Haskell2010
     default-extensions: OverloadedStrings NoImplicitPrelude
     hs-source-dirs: app

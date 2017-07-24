@@ -1,10 +1,10 @@
 { mkDerivation, aeson, aeson-casing, attoparsec, base, bytestring
 , containers, ede, file-embed, lucid, monad-logger
 , optparse-applicative, protolude, raw-strings-qq, shell-cmd
-, stdenv, temporary, text, unordered-containers, vector
+, stdenv, temporary, text, unordered-containers, vector, ghcid
 }:
 mkDerivation {
-  pname = "nix-cve";
+  pname = "nvs";
   version = "0.1.0.0";
   src = ./.;
   isLibrary = true;
@@ -12,9 +12,9 @@ mkDerivation {
   libraryHaskellDepends = [
     aeson aeson-casing attoparsec base bytestring containers ede
     file-embed lucid monad-logger optparse-applicative protolude
-    raw-strings-qq shell-cmd temporary text unordered-containers vector
+    raw-strings-qq shell-cmd temporary text unordered-containers vector ghcid
   ];
   executableHaskellDepends = [ base protolude ];
-  homepage = "https://github.com/pbogdan/nix-cve";
+  homepage = "https://github.com/pbogdan/nixpkgs-vuln-scanner";
   license = stdenv.lib.licenses.bsd3;
 }

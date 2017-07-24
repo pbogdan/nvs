@@ -1,13 +1,13 @@
 {-|
 Module      : Nixpkgs.Cve.Cli.Opts
-Description : Command line arguments parser for nix-cve command line interface.
+Description : Command line arguments parser for nvs command line interface.
 Copyright   : (c) Piotr Bogdan, 2017
 License     : BSD3
 Maintainer  : ppbogdan@gmail.com
 Stability   : experimental
 Portability : Unknown
 
-Command line arguments parser for nix-cve command line interface.
+Command line arguments parser for nvs command line interface.
 
 -}
 
