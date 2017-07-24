@@ -14,10 +14,10 @@ library
     exposed-modules:
         Nixpkgs.Maintainers
         Nixpkgs.Packages
-        Nix.Cve.Cli
-        Nix.Cve.Cli.Opts
-        Nix.Cve.Report
-        Nix.Cve.Report.Template
+        Nixpkgs.Cve.Cli
+        Nixpkgs.Cve.Cli.Opts
+        Nixpkgs.Cve.Report
+        Nixpkgs.Cve.Report.Template
         Nvd.Cve
     other-modules:
         Paths_nix_cve

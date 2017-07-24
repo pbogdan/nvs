@@ -2,7 +2,7 @@ module Main where
 
 import Protolude
 
-import Nix.Cve.Cli
+import Nixpkgs.Cve.Cli
 
 main :: IO ()
 main = defaultMain

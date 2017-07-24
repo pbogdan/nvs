@@ -1,5 +1,5 @@
 {-|
-Module      : Nix.Cve.Report
+Module      : Nixpkgs.Cve.Report
 Description : Report rendering utilities.
 Copyright   : (c) Piotr Bogdan, 2017
 License     : BSD3
@@ -12,7 +12,7 @@ Report rendering utilities.
 -}
 {-# LANGUAGE DeriveGeneric #-}
 
-module Nix.Cve.Report where
+module Nixpkgs.Cve.Report where
 
 import           Protolude hiding (link)
 
@@ -27,7 +27,7 @@ import           Data.String (String)
 import           Lucid hiding (for_)
 import           Lucid.Base
 import           Lucid.Bootstrap
-import           Nix.Cve.Report.Template
+import           Nixpkgs.Cve.Report.Template
 import           Nixpkgs.Maintainers
 import           Nixpkgs.Packages
 import           Nvd.Cve

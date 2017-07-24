@@ -1,5 +1,5 @@
 {-|
-Module      : Nix.Cve.Cli
+Module      : Nixpkgs.Cve.Cli
 Description : Command line interface to nix-cve.
 Copyright   : (c) Piotr Bogdan, 2017
 License     : BSD3
@@ -13,14 +13,14 @@ Command line interface to nix-cve.
 
 {-# LANGUAGE QuasiQuotes #-}
 
-module Nix.Cve.Cli where
+module Nixpkgs.Cve.Cli where
 
 import Protolude
 
 import Control.Monad.Logger
 import Data.String (String)
-import Nix.Cve.Report
-import Nix.Cve.Cli.Opts
+import Nixpkgs.Cve.Report
+import Nixpkgs.Cve.Cli.Opts
 import Options.Applicative (execParser)
 import Shell
 import System.IO.Temp
