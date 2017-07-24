@@ -1,5 +1,5 @@
 {-|
-Module      : Nixpkgs.Cve.Report
+Module      : Nixpkgs.Vuln.Report
 Description : Report rendering utilities.
 Copyright   : (c) Piotr Bogdan, 2017
 License     : BSD3
@@ -13,7 +13,7 @@ Report rendering utilities.
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE TupleSections #-}
 
-module Nixpkgs.Cve.Report
+module Nixpkgs.Vuln.Report
   ( RenderMode(..)
   , report
   ) where
@@ -31,7 +31,7 @@ import           Data.String (String)
 import           Lucid hiding (for_)
 import           Lucid.Base
 import           Lucid.Bootstrap
-import           Nixpkgs.Cve.Report.Template
+import           Nixpkgs.Vuln.Report.Template
 import           Nixpkgs.Maintainers
 import           Nixpkgs.Packages
 import           Nvd.Cve
@@ -58,7 +58,7 @@ instance ToJSON CveWithPackage where
 -- package set.
 --
 -- To see how the packages.json and mainers.json files are generated please
--- refer to "Nixpkgs.Cve.Cli" module.
+-- refer to "Nixpkgs.Vuln.Cli" module.
 report ::
      FilePath -- ^ path to NVD JSON feed
   -> FilePath -- ^ path to packages.json file

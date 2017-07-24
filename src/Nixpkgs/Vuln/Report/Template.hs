@@ -1,6 +1,6 @@
 {-# LANGUAGE TemplateHaskell #-}
 
-module Nixpkgs.Cve.Report.Template
+module Nixpkgs.Vuln.Report.Template
   ( markdownTemplate
   ) where
 

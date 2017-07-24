@@ -1,5 +1,5 @@
 {-|
-Module      : Nixpkgs.Cve.Cli.Opts
+Module      : Nixpkgs.Vuln.Cli.Opts
 Description : Command line arguments parser for nvs command line interface.
 Copyright   : (c) Piotr Bogdan, 2017
 License     : BSD3
@@ -11,7 +11,7 @@ Command line arguments parser for nvs command line interface.
 
 -}
 
-module Nixpkgs.Cve.Cli.Opts
+module Nixpkgs.Vuln.Cli.Opts
   ( Options(..)
   , parseOptions
   , withInfo
@@ -19,7 +19,7 @@ module Nixpkgs.Cve.Cli.Opts
 
 import Protolude
 
-import Nixpkgs.Cve.Report
+import Nixpkgs.Vuln.Report
 import Options.Applicative
 
 data Options =

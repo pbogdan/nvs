@@ -1,7 +1,7 @@
 {-# LANGUAGE FlexibleContexts #-}
 
 {-|
-Module      : Nixpkgs.Cve.Cli
+Module      : Nixpkgs.Vuln.Cli
 Description : Command line interface to nvs.
 Copyright   : (c) Piotr Bogdan, 2017
 License     : BSD3
@@ -15,7 +15,7 @@ Command line interface to nvs.
 
 {-# LANGUAGE QuasiQuotes #-}
 
-module Nixpkgs.Cve.Cli
+module Nixpkgs.Vuln.Cli
   ( defaultMain
   ) where
 
@@ -23,8 +23,8 @@ import Protolude
 
 import Control.Monad.Logger
 import Data.String (String)
-import Nixpkgs.Cve.Report
-import Nixpkgs.Cve.Cli.Opts
+import Nixpkgs.Vuln.Report
+import Nixpkgs.Vuln.Cli.Opts
 import Options.Applicative (execParser)
 import Shell
 import System.IO.Temp

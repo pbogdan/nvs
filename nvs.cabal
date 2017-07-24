@@ -14,10 +14,10 @@ library
     exposed-modules:
         Nixpkgs.Maintainers
         Nixpkgs.Packages
-        Nixpkgs.Cve.Cli
-        Nixpkgs.Cve.Cli.Opts
-        Nixpkgs.Cve.Report
-        Nixpkgs.Cve.Report.Template
+        Nixpkgs.Vuln.Cli
+        Nixpkgs.Vuln.Cli.Opts
+        Nixpkgs.Vuln.Report
+        Nixpkgs.Vuln.Report.Template
         Nvd.Cve
     build-depends:
         base >=4.9 && <4.10,
