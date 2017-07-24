@@ -52,6 +52,9 @@ instance ToJSON CveWithPackage where
 
 -- | Produce a human readable report about CVEs that may be present in the given
 -- package set.
+--
+-- To see how the packages.json and mainers.json files are generated please
+-- refer to "Nixpkgs.Cve.Cli" module.
 report ::
      FilePath -- ^ path to NVD JSON feed
   -> FilePath -- ^ path to packages.json file
