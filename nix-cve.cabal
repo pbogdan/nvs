@@ -12,8 +12,8 @@ data-files:
 
 library
     exposed-modules:
-        Distribution.Maintainers
-        Distribution.Package
+        Nixpkgs.Maintainers
+        Nixpkgs.Packages
         Nix.Cve.Cli
         Nix.Cve.Cli.Opts
         Nix.Cve.Report

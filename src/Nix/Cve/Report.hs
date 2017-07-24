@@ -24,12 +24,12 @@ import qualified Data.HashMap.Strict as HashMap
 import           Data.Set (Set)
 import qualified Data.Set as Set
 import           Data.String (String)
-import           Distribution.Maintainers
-import           Distribution.Package
 import           Lucid hiding (for_)
 import           Lucid.Base
 import           Lucid.Bootstrap
 import           Nix.Cve.Report.Template
+import           Nixpkgs.Maintainers
+import           Nixpkgs.Packages
 import           Nvd.Cve
 import           Text.EDE
 

@@ -1,5 +1,5 @@
 {-|
-Module      : Distribution.Maintainers
+Module      : Nixpkgs.Maintainers
 Description : Utilities to parse maintainer information extracted from nixpkgs.
 Copyright   : (c) Piotr Bogdan, 2017
 License     : BSD3
@@ -11,7 +11,7 @@ This module provides simple utilities to work with JSON representation of
 nixpkgs maintainers that's been extracted from nixpkgs tree.
 
 -}
-module Distribution.Maintainers
+module Nixpkgs.Maintainers
   ( Maintainer(..)
   , parseMaintainers
   , findMaintainer

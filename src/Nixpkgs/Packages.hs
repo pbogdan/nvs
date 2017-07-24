@@ -1,5 +1,5 @@
 {-|
-Module      : Distribution.Package
+Module      : Nixpkgs.Packages
 Description : Utilities to deal with package information extracted from nixpkgs.
 Copyright   : (c) Piotr Bogdan, 2017
 License     : BSD3
@@ -12,7 +12,7 @@ nixpkgs packages.
 -}
 {-# LANGUAGE DeriveGeneric #-}
 
-module Distribution.Package
+module Nixpkgs.Packages
   ( Package(..)
   , packageUrl
   , PackageMeta(..)
