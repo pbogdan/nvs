@@ -15,7 +15,9 @@ Command line interface to nix-cve.
 
 {-# LANGUAGE QuasiQuotes #-}
 
-module Nixpkgs.Cve.Cli where
+module Nixpkgs.Cve.Cli
+  ( defaultMain
+  ) where
 
 import Protolude
 

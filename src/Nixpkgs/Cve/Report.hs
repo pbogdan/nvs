@@ -12,7 +12,10 @@ Report rendering utilities.
 -}
 {-# LANGUAGE DeriveGeneric #-}
 
-module Nixpkgs.Cve.Report where
+module Nixpkgs.Cve.Report
+  ( RenderMode(..)
+  , report
+  ) where
 
 import           Protolude hiding (link)
 
@@ -40,13 +43,13 @@ data RenderMode
   deriving (Eq, Show)
 
 data CveWithPackage = CveWithPackage
-  { cveWithPackageCve :: Cve
-  , cveWithPackagePackage :: Package
+  { _cveWithPackageCve :: Cve
+  , _cveWithPackagePackage :: Package
   } deriving (Eq, Generic, Show)
 
 instance ToJSON CveWithPackage where
   toJSON =
-    genericToJSON $ aesonDrop (length ("CveWithPackage" :: String)) camelCase
+    genericToJSON $ aesonDrop (length ("_CveWithPackage" :: String)) camelCase
 
 -- @TODO: semantics of "-" in package / product version are unclear..
 

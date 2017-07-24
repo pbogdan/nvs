@@ -19,8 +19,6 @@ library
         Nixpkgs.Cve.Report
         Nixpkgs.Cve.Report.Template
         Nvd.Cve
-    other-modules:
-        Paths_nix_cve
     build-depends:
         base >=4.9 && <4.10,
         aeson >=1.0.2 && <1.1,
