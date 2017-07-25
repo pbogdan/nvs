@@ -14,6 +14,7 @@ library
     exposed-modules:
         Nixpkgs.Maintainers
         Nixpkgs.Packages
+        Nixpkgs.Packages.Aliases
         Nixpkgs.Vuln.Cli
         Nixpkgs.Vuln.Cli.Opts
         Nixpkgs.Vuln.Report
@@ -37,7 +38,8 @@ library
         raw-strings-qq >= 1.1 && < 1.2,
         aeson-casing >= 0.1 && < 0.2,
         ede >= 0.2 && < 0.3,
-        file-embed >= 0.0.10
+        file-embed >= 0.0.10,
+        yaml >= 0.8 && < 0.9
     default-language: Haskell2010
     default-extensions: OverloadedStrings NoImplicitPrelude
     hs-source-dirs: src

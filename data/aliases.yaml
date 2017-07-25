@@ -1,0 +1,9 @@
+- package: vlc
+  aliases:
+    - vlc_media_player
+- package: networkmanagerapplet
+  aliases:
+    - nm-applet
+- package: firefox-bin
+  aliases:
+    - firefox

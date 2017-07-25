@@ -28,12 +28,13 @@ import qualified Data.HashMap.Strict as HashMap
 import           Data.Set (Set)
 import qualified Data.Set as Set
 import           Data.String (String)
-import           Lucid hiding (for_)
-import           Lucid.Base
+import           Lucid hiding (for_, term)
+import           Lucid.Base hiding (term)
 import           Lucid.Bootstrap
-import           Nixpkgs.Vuln.Report.Template
 import           Nixpkgs.Maintainers
 import           Nixpkgs.Packages
+import           Nixpkgs.Packages.Aliases
+import           Nixpkgs.Vuln.Report.Template
 import           Nvd.Cve
 import           Text.EDE
 
@@ -72,16 +73,21 @@ report cvePath pkgsPath mtsPath outPath mode = do
   pkgs <- parsePackages pkgsPath
   mts <- parseMaintainers mtsPath
   let byProduct = cvesByProduct cves
+      aliases = parseAliases
       go :: [(Package, Set Cve)] -> Package -> [(Package, Set Cve)]
       go acc p =
         let pVersion = packageVersion p
             pName = packageName p
-            matches =
-              map (p, ) $
-              catMaybes
-                [ HashMap.lookup (pName, pVersion) byProduct
-                , HashMap.lookup (pName, "*") byProduct
-                ]
+            pAliases =
+              fromMaybe
+                []
+                (packageAliasAliases <$> HashMap.lookup pName aliases)
+            terms =
+              [(alias, pVersion) | alias <- pAliases] ++
+              [(alias, "*") | alias <- pAliases] ++
+              [(pName, pVersion), (pName, "*")]
+            queries = [HashMap.lookup term byProduct | term <- terms]
+            matches = map (p, ) $ catMaybes queries
         in acc ++ matches
       vulns = HashMap.foldl' go [] pkgs
       renderer =
