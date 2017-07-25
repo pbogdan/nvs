@@ -1,3 +1,5 @@
+{-# LANGUAGE DeriveGeneric #-}
+
 {-|
 Module      : Nixpkgs.Maintainers
 Description : Utilities to parse maintainer information extracted from nixpkgs.
@@ -20,9 +22,11 @@ module Nixpkgs.Maintainers
 import           Protolude hiding (handle)
 
 import           Data.Aeson
+import           Data.Aeson.Casing
 import qualified Data.ByteString as Bytes
 import           Data.HashMap.Strict (HashMap)
 import qualified Data.HashMap.Strict as HashMap
+import           Data.String (String)
 import qualified Data.Text as Text
 
 -- | Represents information about nixpkgs maintainer. Given the following entry
@@ -41,7 +45,10 @@ data Maintainer = Maintainer
   { maintainerHandle :: Text
   , maintainerName :: Text
   , maintainerEmail :: Text
-  } deriving (Eq, Ord, Show)
+  } deriving (Eq, Generic, Ord, Show)
+
+instance ToJSON Maintainer where
+  toJSON = genericToJSON $ aesonDrop (length ("Maintainer" :: String)) camelCase
 
 -- | Equivalent of fromJust for Either. Partial, therefore unsafe.
 fromEither :: Either a b -> b
