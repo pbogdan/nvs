@@ -17,6 +17,7 @@ library
         Nixpkgs.Packages.Aliases
         Nixpkgs.Vuln.Cli
         Nixpkgs.Vuln.Cli.Opts
+        Nixpkgs.Vuln.Excludes
         Nixpkgs.Vuln.Report
         Nixpkgs.Vuln.Report.Template
         Nvd.Cve

@@ -28,12 +28,15 @@ import qualified Data.HashMap.Strict as HashMap
 import           Data.Set (Set)
 import qualified Data.Set as Set
 import           Data.String (String)
+import           Data.Vector (Vector)
+import qualified Data.Vector as Vec
 import           Lucid hiding (for_, term)
 import           Lucid.Base hiding (term)
 import           Lucid.Bootstrap
 import           Nixpkgs.Maintainers
 import           Nixpkgs.Packages
 import           Nixpkgs.Packages.Aliases
+import           Nixpkgs.Vuln.Excludes
 import           Nixpkgs.Vuln.Report.Template
 import           Nvd.Cve
 import           Text.EDE
@@ -54,6 +57,11 @@ instance ToJSON CveWithPackage where
   toJSON =
     genericToJSON $ aesonDrop (length ("_CveWithPackage" :: String)) camelCase
 
+dropNvdExcludes :: Excludes ->  Vector Cve -> Vector Cve
+dropNvdExcludes es cves =
+  let toDrop = nvdExcludes es
+  in flip Vec.filter cves $ \cve -> cveId cve `notElem` toDrop
+
 -- @TODO: semantics of "-" in package / product version are unclear..
 
 -- | Produce a human readable report about CVEs that may be present in the given
@@ -69,7 +77,8 @@ report ::
   -> RenderMode -- ^ what type of output to generate
   -> IO ()
 report cvePath pkgsPath mtsPath outPath mode = do
-  cves <- parseCves cvePath
+  let es = parseExcludes
+  cves <- dropNvdExcludes es <$> parseCves cvePath
   pkgs <- parsePackages pkgsPath
   mts <- parseMaintainers mtsPath
   let byProduct = cvesByProduct cves
