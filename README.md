@@ -66,7 +66,7 @@ If for any reason you want to exclude a particular vulnerability for being consi
 
 #### Managing package aliases
 
-`nvs` can be made aware of package name aliases via `data/aliases.yml` file. This is useful when a package in nixpkgs collection figures in a different name in a vulnerabilities source. For example, as mentioned in "Known issues" section `vlc` package in nixpkgs collection is present in NVD as `vlc_media_player`.
+`nvs` can be made aware of package name aliases via `data/aliases.yml` file. This is useful when a package in nixpkgs collection figures in a different name in a vulnerabilities source. For example, as mentioned in "Known issues" section `vlc` package in nixpkgs collection is present in NVD as `vlc_media_player`. To preview the change refer to the [comments in the previous section](#managing-vulnerabilites-exclusions).
 
 ## Known issues
 
