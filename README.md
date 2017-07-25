@@ -55,6 +55,19 @@ $ nvs --nvd-feed /home/pbogdan/nvdcve-1.0-2017.json --nixpkgs /home/pbogdan/nixp
 will produce an HTML report in the current directory. Alternatively the `--markdown` switch produces a format more suitable for usage in GitHub issues.
 
 
+#### Managing vulnerabilites exclusions
+
+If for any reason you want to exclude a particular vulnerability for being considered when generating the report please add it to `data/excludes.yaml` file. Once you modified the file and wish to preview the changes you must either:
+
+- invoke `nvs` from your checkout of nixpkgs-vuln-scanner
+- rebuild & reinstall `nvs`.
+
+`nvs` looks for the file either relative to the current working directory, otherwise if not found it will use the version bundled with the installed package.
+
+#### Managing package aliases
+
+`nvs` can be made aware of package name aliases via `data/aliases.yml` file. This is useful when a package in nixpkgs collection figures in a different name in a vulnerabilities source. For example, as mentioned in "Known issues" section `vlc` package in nixpkgs collection is present in NVD as `vlc_media_player`.
+
 ## Known issues
 
 - semantics of `-` version selector is unclear, commonly the selector has either a form of an exact version number such as `2.2.1` or `*` with the wildcard semantics. I wasn't able to find an explanation of what `-` means in this context.
