@@ -17,6 +17,7 @@ module Nixpkgs.Maintainers
   ( Maintainer(..)
   , parseMaintainers
   , findMaintainer
+  , findMaintersForPackage
   ) where
 
 import           Protolude hiding (handle)
@@ -28,6 +29,7 @@ import           Data.HashMap.Strict (HashMap)
 import qualified Data.HashMap.Strict as HashMap
 import           Data.String (String)
 import qualified Data.Text as Text
+import           Nixpkgs.Packages
 
 -- | Represents information about nixpkgs maintainer. Given the following entry
 -- in lib/maintainers.nix:
@@ -117,3 +119,13 @@ findMaintainer needle mts =
        [] -> Nothing
        [x] -> Just x
        xs -> head xs
+
+-- | Utility function for finding mainainers for a given package.
+findMaintersForPackage :: Package -> HashMap Text Maintainer -> [Maintainer]
+findMaintersForPackage pkg mts =
+  let meta = packageMeta pkg
+      pkgMts = packageMetaMaintainers meta
+      mMatches = map (`findMaintainer` mts) <$> pkgMts
+  in case mMatches of
+       Nothing -> []
+       Just xs -> catMaybes xs
