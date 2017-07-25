@@ -1,6 +1,5 @@
 {-|
 Module      : Nixpkgs.Vuln.Files
-Description :
 Copyright   : (c) Piotr Bogdan, 2017
 License     : BSD3
 Maintainer  : ppbogdan@gmail.com

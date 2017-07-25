@@ -30,6 +30,7 @@ import Shell
 import System.IO.Temp
 import Text.RawString.QQ
 
+-- | Default main function.
 defaultMain :: IO ()
 defaultMain =
   run =<<

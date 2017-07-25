@@ -22,15 +22,19 @@ import Protolude
 import Nixpkgs.Vuln.Report
 import Options.Applicative
 
+-- | Command line options for the CLI. The fields represent:
+-- - path to NVD JSON feed file
+-- - path to nixpkgs checkout
+-- - rendering mode which specifies output format
+-- - output path for generated report
 data Options =
-  -- | The fields specify path to NVD JSON feed, path to nixpkgs checkout,
-  -- rendering mode and the output path for the generated report.
   Options Text
           Text
           RenderMode
           Text
   deriving (Eq, Show)
 
+-- | Parser for the command line options.
 parseOptions :: Parser Options
 parseOptions =
   Options <$>
@@ -45,5 +49,7 @@ parseOptions =
   (toS <$>
    argument str (metavar "file" <> help "Output path for the generated report"))
 
+-- | Convenience function to add @--help@ support given a parser and
+-- description.
 withInfo :: Parser a -> Text -> ParserInfo a
 withInfo opts desc = info (helper <*> opts) $ progDesc (toS desc)
