@@ -37,7 +37,7 @@ import           Nixpkgs.Maintainers
 import           Nixpkgs.Packages
 import           Nixpkgs.Packages.Aliases
 import           Nixpkgs.Vuln.Excludes
-import           Nixpkgs.Vuln.Report.Template
+import           Nixpkgs.Vuln.Files
 import           Nvd.Cve
 import           Text.EDE
 
@@ -77,12 +77,12 @@ report ::
   -> RenderMode -- ^ what type of output to generate
   -> IO ()
 report cvePath pkgsPath mtsPath outPath mode = do
-  let es = parseExcludes
+  es <- parseExcludes =<< findFile "data/excludes.yaml"
   cves <- dropNvdExcludes es <$> parseCves cvePath
   pkgs <- parsePackages pkgsPath
   mts <- parseMaintainers mtsPath
+  aliases <- parseAliases =<< findFile "data/aliases.yaml"
   let byProduct = cvesByProduct cves
-      aliases = parseAliases
       go :: [(Package, Set Cve)] -> Package -> [(Package, Set Cve)]
       go acc p =
         let pVersion = packageVersion p
@@ -193,7 +193,7 @@ renderMarkdown vulns mts outPath = do
         vulns
       Just env =
         fromValue . toJSON . HashMap.fromList $ [("cves" :: Text, cves')]
-  let tpl = eitherParse markdownTemplate
+  tpl <- eitherParseFile =<< findFile "templates/cves.ede"
   let ret = flip eitherRender env =<< tpl
   case ret of
     Left e -> do

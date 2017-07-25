@@ -11,8 +11,6 @@ Package aliases support.
 
 -}
 
-{-# LANGUAGE TemplateHaskell #-}
-
 module Nixpkgs.Packages.Aliases
   ( PackageAlias(..)
   , parseAliases
@@ -20,8 +18,7 @@ module Nixpkgs.Packages.Aliases
 
 import           Protolude
 
-import           Data.FileEmbed
-
+import qualified Data.ByteString as Bytes
 import           Data.HashMap.Strict (HashMap)
 import qualified Data.HashMap.Strict as HashMap
 import qualified Data.Vector as Vec
@@ -36,16 +33,14 @@ instance FromJSON PackageAlias where
   parseJSON (Object o) = PackageAlias <$> o .: "package" <*> o .: "aliases"
   parseJSON _ = mzero
 
-aliases :: ByteString
-aliases = $(embedFile "data/aliases.yaml")
-
-parseAliases :: HashMap Text PackageAlias
-parseAliases = do
+parseAliases :: FilePath -> IO (HashMap Text PackageAlias)
+parseAliases path = do
+  s <- Bytes.readFile path
   let parser = withArray "Aliases" $ \a -> sequenceA (parseJSON <$> a)
-  let mRet = join (parseEither parser <$> decodeEither aliases)
+  let mRet = join (parseEither parser <$> decodeEither s)
   case mRet of
     Left e -> panic . toS $ e
-    Right ret -> Vec.foldl' go HashMap.empty ret
+    Right ret -> return . Vec.foldl' go HashMap.empty $ ret
   where
     go :: HashMap Text PackageAlias -> PackageAlias -> HashMap Text PackageAlias
     go acc x = HashMap.insert (packageAliasPackage x) x acc

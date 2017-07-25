@@ -1,15 +1,12 @@
-{-# LANGUAGE TemplateHaskell #-}
-
 module Nixpkgs.Vuln.Excludes
   ( Excludes(..)
   , parseExcludes
   ) where
 
-import Protolude
+import           Protolude
 
-
-import Data.FileEmbed
-import Data.Yaml
+import qualified Data.ByteString as Bytes
+import           Data.Yaml
 
 data Excludes = Excludes
   { nvdExcludes :: [Text]
@@ -22,12 +19,11 @@ instance FromJSON Excludes where
     (o .: "glsa" >>= (.: "excludes"))
   parseJSON _ = mzero
 
-excludes :: ByteString
-excludes = $(embedFile "data/excludes.yaml")
 
-parseExcludes :: Excludes
-parseExcludes =
-  let excludesOrErr = decodeEither excludes
-  in case excludesOrErr of
-       Left e -> panic $ "Can't parse excludes: " <> toS e
-       Right es -> es
+parseExcludes :: FilePath -> IO Excludes
+parseExcludes path = do
+  s <- Bytes.readFile path
+  let excludesOrErr = decodeEither s
+  case excludesOrErr of
+    Left e -> panic $ "Can't parse excludes: " <> toS e
+    Right es -> return es

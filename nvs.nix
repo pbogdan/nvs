@@ -1,5 +1,5 @@
 { mkDerivation, aeson, aeson-casing, attoparsec, base, bytestring
-, containers, ede, file-embed, lucid, monad-logger
+, containers, directory, ede, lucid, monad-logger
 , optparse-applicative, protolude, raw-strings-qq, shell-cmd
 , stdenv, temporary, text, unordered-containers, vector, yaml
 }:
@@ -10,8 +10,8 @@ mkDerivation {
   isLibrary = true;
   isExecutable = true;
   libraryHaskellDepends = [
-    aeson aeson-casing attoparsec base bytestring containers ede
-    file-embed lucid monad-logger optparse-applicative protolude
+    aeson aeson-casing attoparsec base bytestring containers directory
+    ede lucid monad-logger optparse-applicative protolude
     raw-strings-qq shell-cmd temporary text unordered-containers vector
     yaml
   ];
