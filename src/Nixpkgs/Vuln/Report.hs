@@ -46,6 +46,7 @@ data RenderMode
 data CveWithPackage = CveWithPackage
   { _cveWithPackageCve :: Cve
   , _cveWithPackagePackage :: Package
+  , _cveWithPackageMaintainers :: [Maintainer]
   } deriving (Eq, Generic, Show)
 
 instance ToJSON CveWithPackage where
@@ -166,12 +167,14 @@ renderMaintainer mt mts =
 
 renderMarkdown ::
      [(Package, Set Cve)] -> HashMap Text Maintainer -> FilePath -> IO ()
-renderMarkdown vulns _mts outPath = do
+renderMarkdown vulns mts outPath = do
   let cves' =
-        map (uncurry CveWithPackage . swap) .
-        sortBy (compare `on` packageName . fst) .
+        map (uncurry3 CveWithPackage) .
+        sortBy (compare `on` packageName . snd3) .
         concatMap
-          ((\(p, cves) -> map (\cve -> (p, cve)) cves) . second Set.toAscList) $
+          ((\(p, cves) ->
+              map (\cve -> (cve, p, findMaintersForPackage p mts)) cves) .
+           second Set.toAscList) $
         vulns
       Just env =
         fromValue . toJSON . HashMap.fromList $ [("cves" :: Text, cves')]
@@ -179,6 +182,11 @@ renderMarkdown vulns _mts outPath = do
   let ret = flip eitherRender env =<< tpl
   case ret of
     Left e -> do
-      putText $ "Rendering failed: " <> show e
+      putText $ "Rendering failed: " <> toS e
       exitFailure
     Right out -> Bytes.writeFile (toS outPath) (toS out)
+  where
+    snd3 :: (a, b, c) -> b
+    snd3 (_, b, _) = b
+    uncurry3 :: (a -> b -> c -> d) -> ((a, b, c) -> d)
+    uncurry3 f ~(a, b, c) = f a b c
