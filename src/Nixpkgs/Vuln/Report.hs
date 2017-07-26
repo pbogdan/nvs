@@ -186,7 +186,7 @@ renderMarkdown ::
 renderMarkdown vulns mts outPath = do
   let cves' =
         map (uncurry3 CveWithPackage) .
-        sortBy (compare `on` packageName . snd3) .
+        sortBy (compare `on` cveId . fst3) .
         concatMap
           ((\(p, cves) ->
               map (\cve -> (cve, p, findMaintersForPackage p mts)) cves) .
@@ -202,7 +202,7 @@ renderMarkdown vulns mts outPath = do
       exitFailure
     Right out -> Bytes.writeFile (toS outPath) (toS out)
   where
-    snd3 :: (a, b, c) -> b
-    snd3 (_, b, _) = b
+    fst3 :: (a, b, c) -> a
+    fst3 (a, _, _) = a
     uncurry3 :: (a -> b -> c -> d) -> ((a, b, c) -> d)
     uncurry3 f ~(a, b, c) = f a b c
