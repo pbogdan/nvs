@@ -36,13 +36,14 @@ import           Data.HashMap.Strict (HashMap)
 import qualified Data.HashMap.Strict as HashMap
 import qualified Data.Vector as Vec
 import           Data.Yaml
+import           Nixpkgs.Packages.Types
 
 -- | Representation of a single entry from aliases database.
 data PackageAlias = PackageAlias
-  { packageAliasPackage :: Text -- ^ name of the package in nixpkgs package
-                                -- collection
-  , packageAliasAliases :: [Text] -- ^ list of alternative names of the nixpkgs
-                                  -- package
+  { packageAliasPackage :: PackageName -- ^ name of the package in nixpkgs
+                                       -- package -- collection
+  , packageAliasAliases :: [PackageName] -- ^ list of alternative names of the
+                                         -- nixpkgs -- package
   } deriving (Eq, Show)
 
 instance FromJSON PackageAlias where
@@ -53,7 +54,7 @@ instance FromJSON PackageAlias where
 -- names of nixpkgs packages.
 parseAliases ::
      FilePath -- ^ path to aliases database file
-  -> IO (HashMap Text PackageAlias)
+  -> IO (HashMap PackageName PackageAlias)
 parseAliases path = do
   s <- Bytes.readFile path
   let parser = withArray "Aliases" $ \a -> sequenceA (parseJSON <$> a)
@@ -62,5 +63,8 @@ parseAliases path = do
     Left e -> panic . toS $ e
     Right ret -> return . Vec.foldl' go HashMap.empty $ ret
   where
-    go :: HashMap Text PackageAlias -> PackageAlias -> HashMap Text PackageAlias
+    go ::
+         HashMap PackageName PackageAlias
+      -> PackageAlias
+      -> HashMap PackageName PackageAlias
     go acc x = HashMap.insert (packageAliasPackage x) x acc

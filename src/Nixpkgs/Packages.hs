@@ -27,53 +27,31 @@ import           Data.Aeson
 import           Data.Aeson.Casing
 import           Data.Aeson.Types
 import qualified Data.ByteString as Bytes
-import           Data.Char
 import           Data.HashMap.Strict (HashMap)
 import qualified Data.HashMap.Strict as HashMap
 import           Data.String (String)
 import qualified Data.Text as Text
 import qualified Data.Vector as Vec
+import           Nixpkgs.Packages.Types
 
 -- | Main data type for representing package information.
 data Package = Package
   { packageSystem :: Text -- ^ The system on which the information has been
                           -- extracted
-  , packageName :: Text -- ^ The name of the package
-  , packageVersion :: Text -- ^ The version of the package
+  , packageName :: PackageName -- ^ The name of the package
+  , packageVersion :: PackageVersion -- ^ The version of the package
   , packageMeta :: PackageMeta -- ^ The meta data of the package
   } deriving (Eq, Generic, Show)
 
 instance FromJSON Package where
   parseJSON (Object o) =
-    Package <$> o .: "system" <*> (parseName <$> o .: "name") <*>
-    (parseVersion <$> o .: "name") <*>
+    Package <$> o .: "system" <*> (parsePackageName <$> o .: "name") <*>
+    (parsePackageVersion <$> o .: "name") <*>
     o .: "meta"
   parseJSON _ = mzero
 
 instance ToJSON Package where
   toJSON = genericToJSON $ aesonDrop (length ("Package" :: String)) camelCase
-
--- | Helper function to extract package version. This follows the same semantics
--- as seen in nix -
--- https://github.com/NixOS/nix/blob/c94f3d5575d7af5403274d1e9e2f3c9d72989751/src/libexpr/names.cc#L14
-parseVersion :: Text -> Text
-parseVersion s =
-  let prefix = Text.takeWhile (/= '-') s
-      suffix = Text.drop (Text.length prefix) s
-  in case Text.length suffix of
-       0 -> suffix
-       1 -> suffix <> prefix
-       _ ->
-         let c = Text.head . Text.drop 1 $ suffix
-         in if isDigit c
-              then Text.drop 1 suffix
-              else parseVersion . Text.drop 1 $ suffix
-
--- | Helper function to extract package name. This follows the same semantics
--- as seen in nix -
--- https://github.com/NixOS/nix/blob/c94f3d5575d7af5403274d1e9e2f3c9d72989751/src/libexpr/names.cc#L14
-parseName :: Text -> Text
-parseName s = Text.dropEnd ((Text.length . parseVersion $ s) + 1) s
 
 -- | Package meta data.
 data PackageMeta = PackageMeta
@@ -150,7 +128,7 @@ instance ToJSON LicenseDetails where
 -- > nix-env -qaP --json '*'
 --
 -- command. The result is a hash map keyed off packages' name.
-parsePackages :: (MonadIO m) => FilePath -> m (HashMap Text Package)
+parsePackages :: (MonadIO m) => FilePath -> m (HashMap PackageName Package)
 parsePackages path = do
   s <- liftIO . Bytes.readFile $ path
   let parser =
@@ -161,7 +139,7 @@ parsePackages path = do
     Left e -> panic . toS $ e
     Right ret -> return . Vec.foldl' go HashMap.empty $ ret
   where
-    go :: HashMap Text Package -> Package -> HashMap Text Package
+    go :: HashMap PackageName Package -> Package -> HashMap PackageName Package
     go acc x = HashMap.insert (packageName x) x acc
 
 -- | GitHub link to the file containing Nix expression that defined the

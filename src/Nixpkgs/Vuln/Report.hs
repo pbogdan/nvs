@@ -36,6 +36,7 @@ import           Lucid.Bootstrap
 import           Nixpkgs.Maintainers
 import           Nixpkgs.Packages
 import           Nixpkgs.Packages.Aliases
+import           Nixpkgs.Packages.Types
 import           Nixpkgs.Vuln.Excludes
 import           Nixpkgs.Vuln.Files
 import           Nvd.Cve
@@ -93,8 +94,8 @@ report cvePath pkgsPath mtsPath outPath mode = do
                 (packageAliasAliases <$> HashMap.lookup pName aliases)
             terms =
               [(alias, pVersion) | alias <- pAliases] ++
-              [(alias, "*") | alias <- pAliases] ++
-              [(pName, pVersion), (pName, "*")]
+              [(alias, wildcard) | alias <- pAliases] ++
+              [(pName, pVersion), (pName, wildcard)]
             queries = [HashMap.lookup term byProduct | term <- terms]
             matches = map (p, ) $ catMaybes queries
         in acc ++ matches
@@ -143,10 +144,13 @@ renderHTML vulns mts outPath =
                         mLink = packageUrl pkg
                         html =
                           case mLink of
-                            Nothing -> toHtml pName
-                            Just link -> a_ [href_ link] (toHtml pName)
+                            Nothing -> toHtml . displayPackageName $ pName
+                            Just link ->
+                              a_
+                                [href_ link]
+                                (toHtml . displayPackageName $ pName)
                     html
-                  td_ (toHtml . packageVersion $ pkg)
+                  td_ (toHtml . displayPackageVersion . packageVersion $ pkg)
                   td_
                     (a_
                        [ href_

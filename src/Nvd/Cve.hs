@@ -37,6 +37,7 @@ import           Data.String (String)
 import qualified Data.Text as Text
 import           Data.Vector (Vector)
 import qualified Data.Vector as Vec
+import           Nixpkgs.Packages.Types
 import           Text.Read (read)
 
 -- | CVE ID.
@@ -114,8 +115,8 @@ instance ToJSON VendorData where
 -- | Description of a vendor's product, including its name and a list of
 -- versions.
 data VendorProduct = VendorProduct
-  { vendorProductName :: Text -- ^ Name of the product.
-  , vendorProductVersion :: [Text] -- ^ List of product versions.
+  { vendorProductName :: PackageName -- ^ Name of the product.
+  , vendorProductVersion :: [PackageVersion] -- ^ List of product versions.
   } deriving (Eq, Generic, Ord, Show)
 
 instance FromJSON VendorProduct where
@@ -148,7 +149,7 @@ parseCves path = do
 -- versions. For example given a Cve an entry in the list may look as follows:
 --
 -- > ("ffmpeg", "2.8.11")
-cveProducts :: Cve -> [(Text, Text)]
+cveProducts :: Cve -> [(PackageName, PackageVersion)]
 cveProducts cve =
   let affected = cveAffects cve
       products = concatMap vendorProduct affected
@@ -164,11 +165,13 @@ cveProducts cve =
 --
 -- key, with the corresponding value being a set of CVEs that affect
 -- ffmpeg-2.8.11.
-cvesByProduct :: Vector Cve -> HashMap (Text, Text) (Set Cve)
+cvesByProduct :: Vector Cve -> HashMap (PackageName, PackageVersion) (Set Cve)
 cvesByProduct = Vec.foldl' go HashMap.empty
   where
     go ::
-         HashMap (Text, Text) (Set Cve) -> Cve -> HashMap (Text, Text) (Set Cve)
+         HashMap (PackageName, PackageVersion) (Set Cve)
+      -> Cve
+      -> HashMap (PackageName, PackageVersion) (Set Cve)
     go acc cve =
       let products = cveProducts cve
           go' acc' x =
