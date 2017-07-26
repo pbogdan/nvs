@@ -78,7 +78,7 @@ report ::
   -> RenderMode -- ^ what type of output to generate
   -> IO ()
 report cvePath pkgsPath mtsPath outPath mode = do
-  es <- parseExcludes =<< findFile "data/excludes.yaml"
+  es <- parseExcludes =<< findFile "data/vuln-excludes.yaml"
   cves <- dropNvdExcludes es <$> parseCves cvePath
   pkgs <- parsePackages pkgsPath
   mts <- parseMaintainers mtsPath

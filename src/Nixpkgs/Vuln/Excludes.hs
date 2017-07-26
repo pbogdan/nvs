@@ -10,7 +10,7 @@ Portability : Unknown
 Exclusion database support. The database store vulnerability identifier that
 should be exluded when producing the report. 
 
-The database is currently stored in YAML format in @data/excludes.yaml@
+The database is currently stored in YAML format in @data/vuln-excludes.yaml@
 file. The format of the database is as follows:
 
 @
