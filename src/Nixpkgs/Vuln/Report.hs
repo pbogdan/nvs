@@ -150,9 +150,10 @@ renderHTML vulns mts outPath =
                   td_
                     (a_
                        [ href_
-                           ("https://nvd.nist.gov/vuln/detail/" <> cveId cve)
+                           ("https://nvd.nist.gov/vuln/detail/" <>
+                            (unCveId . cveId $ cve))
                        ]
-                       (toHtml . cveId $ cve))
+                       (toHtml . unCveId . cveId $ cve))
                   td_ (toHtml . cveDescription $ cve)
                 tr_ $ do
                   td_ [colspan_ "3"] ""

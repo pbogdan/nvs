@@ -35,10 +35,11 @@ import           Protolude
 
 import qualified Data.ByteString as Bytes
 import           Data.Yaml
+import           Nvd.Cve
 
 -- | Representation of entries in the excludes database.
 data Excludes = Excludes
-  { nvdExcludes :: [Text] -- ^ Exclusions for vulnerabilites retrieved from
+  { nvdExcludes :: [CveId] -- ^ Exclusions for vulnerabilites retrieved from
                           -- NVD. Those should be CVE IDs.
   , glsaExcludes :: [Text] -- ^ Exclusionos for vulnerabilites retrieved from
                            -- GLSA repository. Those should be GLSA IDs.
@@ -51,7 +52,7 @@ instance FromJSON Excludes where
   parseJSON _ = mzero
 
 
--- | Load and parse excludes database. 
+-- | Load and parse excludes database.
 parseExcludes ::
      FilePath -- ^ path tot he excludes database
   -> IO Excludes

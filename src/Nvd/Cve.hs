@@ -13,7 +13,8 @@ Utilities to interface with JSON feeds provided by NVD.
 {-# LANGUAGE DeriveGeneric #-}
 
 module Nvd.Cve
-  ( Cve(..)
+  ( CveId(..)
+  , Cve(..)
   , VendorData(..)
   , parseCves
   , cvesByProduct
@@ -28,17 +29,47 @@ import           Data.Aeson.Types
 import qualified Data.ByteString as Bytes
 import           Data.HashMap.Strict (HashMap)
 import qualified Data.HashMap.Strict as HashMap
+import           Data.List ((!!))
 import           Data.Set (Set)
 import qualified Data.Set as Set
 import           Data.String (String)
+import qualified Data.Text as Text
 import           Data.Vector (Vector)
 import qualified Data.Vector as Vec
+import           Text.Read (read)
+
+newtype CveId = CveId
+  { unCveId :: Text
+  } deriving (Eq, Generic, Show)
+
+instance FromJSON CveId where
+  parseJSON (String s) = pure . CveId $ s
+  parseJSON _ = mzero
+
+instance ToJSON CveId where
+  toJSON (CveId id) = String id
+
+cveIdYear :: CveId -> Int
+cveIdYear (CveId id) =
+  let parts = Text.splitOn "-" id
+  in read . toS $ (parts !! 1)
+
+cveIdId :: CveId -> Int
+cveIdId (CveId id) =
+  let parts = Text.splitOn "-" id
+  in read . toS $ (parts !! 2)
+
+instance Ord CveId where
+  (<=) x y =
+    if cveIdYear x == cveIdYear y
+      then cveIdId x <= cveIdId y
+      else cveIdYear x <= cveIdYear y
 
 -- | Representation of a CVE parsed out of NVD feed. Currently only fields
 -- directly needed by this project are extracted, with the rest of them
 -- discarded.
 data Cve = Cve
-  { cveId :: Text -- ^ The ID of the CVE such as CVE-2016-5253.
+  { cveId :: CveId -- ^ The ID of the CVE such as CVE-2016-5253.
   , cveAffects :: [VendorData] -- ^ List of affected vendors and products.
   , cveDescription :: Text -- ^ Description of the CVE.
   } deriving (Eq, Generic, Ord, Show)
