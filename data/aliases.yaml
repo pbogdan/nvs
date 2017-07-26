@@ -7,3 +7,6 @@
 - package: firefox-bin
   aliases:
     - firefox
+- package: db
+  aliases:
+    - oracle_berkeley_db
