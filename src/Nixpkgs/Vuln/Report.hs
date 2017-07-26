@@ -82,7 +82,7 @@ report cvePath pkgsPath mtsPath outPath mode = do
   cves <- dropNvdExcludes es <$> parseCves cvePath
   pkgs <- parsePackages pkgsPath
   mts <- parseMaintainers mtsPath
-  aliases <- parseAliases =<< findFile "data/aliases.yaml"
+  aliases <- parseAliases =<< findFile "data/package-aliases.yaml"
   let byProduct = cvesByProduct cves
       go :: [(Package, Set Cve)] -> Package -> [(Package, Set Cve)]
       go acc p =

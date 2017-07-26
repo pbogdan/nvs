@@ -12,8 +12,8 @@ where the name of a package in nipxkgs collection is different to what's present
 in a source of vulnerabilities. For example @vlc@ from nixpkgs is present in NVD
 under the name of @vlc_media_player@.
 
-The database is currently stored in YAML format in @data/aliases.yaml@ file. The
-format of the database is as follows:
+The database is currently stored in YAML format in @data/package-aliases.yaml@
+file. The format of the database is as follows:
 
 @
   - package: nixpkgs-package-name
