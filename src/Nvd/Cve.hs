@@ -13,7 +13,8 @@ Utilities to interface with JSON feeds provided by NVD.
 {-# LANGUAGE DeriveGeneric #-}
 
 module Nvd.Cve
-  ( CveId(..)
+  ( CveId
+  , displayCveId
   , Cve(..)
   , VendorData(..)
   , parseCves
@@ -38,9 +39,10 @@ import           Data.Vector (Vector)
 import qualified Data.Vector as Vec
 import           Text.Read (read)
 
-newtype CveId = CveId
-  { unCveId :: Text
-  } deriving (Eq, Generic, Show)
+-- | CVE ID.
+newtype CveId =
+  CveId Text
+  deriving (Eq, Generic, Show)
 
 instance FromJSON CveId where
   parseJSON (String s) = pure . CveId $ s
@@ -58,6 +60,10 @@ cveIdId :: CveId -> Int
 cveIdId (CveId id) =
   let parts = Text.splitOn "-" id
   in read . toS $ (parts !! 2)
+
+-- | Helper to convert CveId into textual representation.
+displayCveId :: CveId -> Text
+displayCveId (CveId id) = id
 
 instance Ord CveId where
   (<=) x y =
