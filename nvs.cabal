@@ -61,3 +61,19 @@ executable nvs
     hs-source-dirs: app
     main-is: Main.hs
     ghc-options: -Wall -rtsopts
+
+test-suite nvs-test
+  type:                exitcode-stdio-1.0
+  hs-source-dirs:      test
+  main-is:             Spec.hs
+  other-modules:       CveSpec
+  build-depends:       base
+                     , hspec
+                     , nvs
+                     , protolude
+                     , QuickCheck
+                     , quickcheck-instances
+                     , unordered-containers
+  ghc-options:         -Wall -threaded -rtsopts -with-rtsopts=-N
+  default-language:    Haskell2010
+  default-extensions:  OverloadedStrings NoImplicitPrelude

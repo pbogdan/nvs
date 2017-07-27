@@ -1,7 +1,8 @@
 { mkDerivation, aeson, aeson-casing, attoparsec, base, bytestring
-, containers, directory, ede, hashable, lucid, monad-logger
-, optparse-applicative, protolude, raw-strings-qq, shell-cmd
-, stdenv, temporary, text, unordered-containers, vector, yaml
+, containers, directory, ede, hashable, hspec, lucid, monad-logger
+, optparse-applicative, protolude, QuickCheck, quickcheck-instances
+, raw-strings-qq, shell-cmd, stdenv, temporary, text
+, unordered-containers, vector, yaml
 }:
 mkDerivation {
   pname = "nvs";
@@ -16,6 +17,10 @@ mkDerivation {
     yaml
   ];
   executableHaskellDepends = [ base protolude ];
+  testHaskellDepends = [
+    base hspec protolude QuickCheck quickcheck-instances
+    unordered-containers
+  ];
   homepage = "https://github.com/pbogdan/nixpkgs-vuln-scanner";
   license = stdenv.lib.licenses.bsd3;
 }
