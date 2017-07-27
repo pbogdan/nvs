@@ -60,4 +60,4 @@ executable nvs
     default-extensions: OverloadedStrings NoImplicitPrelude
     hs-source-dirs: app
     main-is: Main.hs
-    ghc-options: -Wall
+    ghc-options: -Wall -rtsopts
