@@ -1,13 +1,11 @@
 nvd:
-  excludes:
+  excludes: []
     # - CVE-2017-8804
-    - ""
 
 # GLSAs are not supported as of yet, leaving this as a placeholder for when / if
 # they are
 
 glsa:
-  excludes:
+  excludes: []
     # - GLSA-232
     # - GLSA-32
-    - ""
