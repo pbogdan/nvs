@@ -11,6 +11,7 @@ Utilities to interface with JSON feeds provided by NVD.
 
 -}
 {-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE TupleSections #-}
 
 module Nvd.Cve
   ( CveId
@@ -19,6 +20,7 @@ module Nvd.Cve
   , VendorData(..)
   , parseCves
   , cvesByProduct
+  , cvesForPackage
   ) where
 
 import           Protolude
@@ -33,12 +35,17 @@ import qualified Data.HashMap.Strict as HashMap
 import           Data.List ((!!))
 import           Data.Set (Set)
 import qualified Data.Set as Set
-import           Data.String (String)
+import           Data.String (String, IsString(..))
 import qualified Data.Text as Text
 import           Data.Vector (Vector)
 import qualified Data.Vector as Vec
+import           Nixpkgs.Packages
+import           Nixpkgs.Packages.Aliases
 import           Nixpkgs.Packages.Types
 import           Text.Read (read)
+
+-- @TODO: get rid of unsafe list lookups with !! and there should be validation
+-- of the CVE ID format as well
 
 -- | CVE ID.
 newtype CveId =
@@ -51,6 +58,9 @@ instance FromJSON CveId where
 
 instance ToJSON CveId where
   toJSON (CveId id) = String id
+
+instance IsString CveId where
+  fromString = CveId . toS
 
 cveIdYear :: CveId -> Int
 cveIdYear (CveId id) =
@@ -138,12 +148,12 @@ instance ToJSON VendorProduct where
 parseCves ::
      MonadIO m
   => FilePath -- ^ Path to the NVD JSON feed file
-  -> m (Vector Cve)
+  -> m (HashMap (PackageName, PackageVersion) (Set Cve))
 parseCves path = do
   s <- liftIO . Bytes.readFile $ path
   let parser = withObject "cves" $ \o -> o .: "CVE_Items" >>= parseJSON
   let mRet = join (parseEither parser <$> eitherDecodeStrict s)
-  return $ either (panic . toS) identity mRet
+  return $ either (panic . toS) cvesByProduct mRet
 
 -- | Given a Cve return a list of tuples representing products' names and
 -- versions. For example given a Cve an entry in the list may look as follows:
@@ -182,3 +192,21 @@ cvesByProduct = Vec.foldl' go HashMap.empty
                     Just cves -> Set.insert cve cves
             in HashMap.insert x updated acc'
       in HashMap.union (foldl' go' HashMap.empty products) acc
+
+cvesForPackage ::
+     Package
+  -> HashMap PackageName PackageAlias
+  -> HashMap (PackageName, PackageVersion) (Set Cve)
+  -> (Package, Set Cve)
+cvesForPackage pkg aliases cves =
+  let pVersion = packageVersion pkg
+      pName = packageName pkg
+      pAliases =
+        fromMaybe [] (packageAliasAliases <$> HashMap.lookup pName aliases)
+      terms =
+        [(alias, pVersion) | alias <- pAliases] ++
+        [(alias, wildcard) | alias <- pAliases] ++
+        [(pName, pVersion), (pName, wildcard)]
+      queries = [HashMap.lookup term cves | term <- terms]
+      matches = foldr Set.union Set.empty $ catMaybes queries
+  in (pkg, matches)

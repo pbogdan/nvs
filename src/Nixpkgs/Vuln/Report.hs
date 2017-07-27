@@ -28,8 +28,6 @@ import qualified Data.HashMap.Strict as HashMap
 import           Data.Set (Set)
 import qualified Data.Set as Set
 import           Data.String (String)
-import           Data.Vector (Vector)
-import qualified Data.Vector as Vec
 import           Lucid hiding (for_, term)
 import           Lucid.Base hiding (term)
 import           Lucid.Bootstrap
@@ -58,10 +56,14 @@ instance ToJSON CveWithPackage where
   toJSON =
     genericToJSON $ aesonDrop (length ("_CveWithPackage" :: String)) camelCase
 
-dropNvdExcludes :: Excludes ->  Vector Cve -> Vector Cve
-dropNvdExcludes es cves =
-  let toDrop = nvdExcludes es
-  in flip Vec.filter cves $ \cve -> cveId cve `notElem` toDrop
+dropNvdExcludes ::
+     Excludes
+  -> HashMap (PackageName, PackageVersion) (Set Cve)
+  -> HashMap (PackageName, PackageVersion) (Set Cve)
+dropNvdExcludes es =
+  let toDrop = Set.fromList . nvdExcludes $ es
+  in HashMap.filter (not . Set.null) .
+     HashMap.map (Set.filter ((`Set.notMember` toDrop) . cveId))
 
 -- @TODO: semantics of "-" in package / product version are unclear..
 
@@ -83,23 +85,11 @@ report cvePath pkgsPath mtsPath outPath mode = do
   pkgs <- parsePackages pkgsPath
   mts <- parseMaintainers mtsPath
   aliases <- parseAliases =<< findFile "data/package-aliases.yaml"
-  let byProduct = cvesByProduct cves
-      go :: [(Package, Set Cve)] -> Package -> [(Package, Set Cve)]
-      go acc p =
-        let pVersion = packageVersion p
-            pName = packageName p
-            pAliases =
-              fromMaybe
-                []
-                (packageAliasAliases <$> HashMap.lookup pName aliases)
-            terms =
-              [(alias, pVersion) | alias <- pAliases] ++
-              [(alias, wildcard) | alias <- pAliases] ++
-              [(pName, pVersion), (pName, wildcard)]
-            queries = [HashMap.lookup term byProduct | term <- terms]
-            matches = map (p, ) $ catMaybes queries
-        in acc ++ matches
-      vulns = HashMap.foldl' go [] pkgs
+  let vulns =
+        HashMap.foldl'
+          (\acc pkg -> cvesForPackage pkg aliases cves : acc)
+          []
+          pkgs
       renderer =
         case mode of
           HTML -> renderHTML
