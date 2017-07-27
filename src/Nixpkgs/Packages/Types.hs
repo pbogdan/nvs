@@ -29,6 +29,7 @@ import           Protolude
 import           Data.Aeson
 import           Data.Char
 import           Data.Hashable
+import           Data.String (IsString(..))
 import qualified Data.Text as Text
 
 newtype PackageName =
@@ -41,6 +42,9 @@ instance FromJSON PackageName where
 
 instance ToJSON PackageName where
   toJSON (PackageName n) = String n
+
+instance IsString PackageName where
+  fromString = PackageName . toS
 
 displayPackageName :: PackageName -> Text
 displayPackageName (PackageName name) = name
@@ -64,6 +68,9 @@ instance FromJSON PackageVersion where
 
 instance ToJSON PackageVersion where
   toJSON (PackageVersion v) = String v
+
+instance IsString PackageVersion where
+  fromString = PackageVersion . toS
 
 displayPackageVersion :: PackageVersion -> Text
 displayPackageVersion (PackageVersion ver) = ver
