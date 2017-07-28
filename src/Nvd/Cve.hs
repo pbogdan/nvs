@@ -203,10 +203,7 @@ cvesForPackage pkg aliases cves =
       pName = packageName pkg
       pAliases =
         fromMaybe [] (packageAliasAliases <$> HashMap.lookup pName aliases)
-      terms =
-        [(alias, pVersion) | alias <- pAliases] ++
-        [(alias, wildcard) | alias <- pAliases] ++
-        [(pName, pVersion), (pName, wildcard)]
+      terms = [(alias, pVersion) | alias <- pAliases] ++ [(pName, pVersion)]
       queries = [HashMap.lookup term cves | term <- terms]
       matches = foldr Set.union Set.empty $ catMaybes queries
   in (pkg, matches)

@@ -21,7 +21,6 @@ module Nixpkgs.Packages.Types
   , PackageVersion
   , displayPackageVersion
   , parsePackageVersion
-  , wildcard
   ) where
 
 import           Protolude
@@ -90,6 +89,3 @@ parsePackageVersion s =
          in if isDigit c
               then PackageVersion . Text.drop 1 $ suffix
               else parsePackageVersion . Text.drop 1 $ suffix
-
-wildcard :: PackageVersion
-wildcard = PackageVersion "*"
