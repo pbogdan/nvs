@@ -10,8 +10,8 @@ Portability : Unknown
 Utilities to interface with JSON feeds provided by NVD.
 
 -}
+
 {-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE TupleSections #-}
 
 module Nvd.Cve
   ( CveId

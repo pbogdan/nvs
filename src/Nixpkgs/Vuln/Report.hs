@@ -10,8 +10,8 @@ Portability : Unknown
 Report rendering utilities.
 
 -}
+
 {-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE TupleSections #-}
 
 module Nixpkgs.Vuln.Report
   ( RenderMode(..)
