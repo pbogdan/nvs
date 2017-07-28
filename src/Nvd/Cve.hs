@@ -43,8 +43,7 @@ import           Nixpkgs.Packages.Aliases
 import           Nixpkgs.Packages.Types
 import           Text.Read (read)
 
--- @TODO: get rid of unsafe list lookups with !! and there should be validation
--- of the CVE ID format as well
+-- @TODO: there should be validation of the CVE ID format
 
 -- | CVE ID.
 newtype CveId =
