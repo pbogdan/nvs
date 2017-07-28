@@ -191,7 +191,7 @@ cvesByProduct = Vec.foldl' go HashMap.empty
                     Nothing -> Set.singleton cve
                     Just cves -> Set.insert cve cves
             in HashMap.insert x updated acc'
-      in HashMap.union (foldl' go' HashMap.empty products) acc
+      in HashMap.unionWith Set.union (foldl' go' HashMap.empty products) acc
 
 cvesForPackage ::
      Package
