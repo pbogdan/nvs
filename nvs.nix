@@ -18,8 +18,8 @@ mkDerivation {
   ];
   executableHaskellDepends = [ base protolude ];
   testHaskellDepends = [
-    base hspec protolude QuickCheck quickcheck-instances
-    unordered-containers
+    base containers hspec protolude QuickCheck quickcheck-instances
+    text unordered-containers vector
   ];
   homepage = "https://github.com/pbogdan/nixpkgs-vuln-scanner";
   license = stdenv.lib.licenses.bsd3;
