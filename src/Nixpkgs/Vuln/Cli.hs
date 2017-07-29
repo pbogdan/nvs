@@ -56,44 +56,38 @@ run (Options nvdFeed nixpkgs mode out) =
           mode
 
 generateMaintainers ::
-     (MonadIO m, MonadLogger m, MonadError ShellCmdFailed m)
+     (MonadIO m, MonadLogger m, MonadError ExitCode m)
   => Text
   -> FilePath
   -> m ()
 generateMaintainers nixpkgs tmpDir = do
-  shell $
-    command "nix-instantiate" $ do
-      arg "--eval"
-      option
-        "-E"
-        ("let m = import " <> nixpkgs <>
-         "/lib/maintainers.nix; in builtins.toJSON m")
-      raw $ " > " <> toS tmpDir <> "/maintainers.json"
-  shell $
-    command "sed" $ do
-      raw . toS $ ([r|-i 's/"{/{/g'|] :: String)
-      arg $ toS tmpDir <> "/maintainers.json"
-  shell $
-    command "sed" $ do
-      raw . toS $ ([r|-i 's/}"/}/g'|] :: String)
-      arg $ toS tmpDir <> "/maintainers.json"
-  shell $
-    command "sed" $ do
-      raw . toS $ ([r|-i 's/\\"/"/g'|] :: String)
-      arg $ toS tmpDir <> "/maintainers.json"
-  shell $
-    command "sed" $ do
-      raw . toS $ ([r|-i 's/\\\\/\\/g'|] :: String)
-      arg $ toS tmpDir <> "/maintainers.json"
+  shell_ "nix-instantiate" $ do
+    arg "--eval"
+    option
+      "-E"
+      ("let m = import " <> nixpkgs <>
+       "/lib/maintainers.nix; in builtins.toJSON m")
+    raw $ " > " <> toS tmpDir <> "/maintainers.json"
+  shell_ "sed" $ do
+    raw . toS $ ([r|-i 's/"{/{/g'|] :: String)
+    arg $ toS tmpDir <> "/maintainers.json"
+  shell_ "sed" $ do
+    raw . toS $ ([r|-i 's/}"/}/g'|] :: String)
+    arg $ toS tmpDir <> "/maintainers.json"
+  shell_ "sed" $ do
+    raw . toS $ ([r|-i 's/\\"/"/g'|] :: String)
+    arg $ toS tmpDir <> "/maintainers.json"
+  shell_ "sed" $ do
+    raw . toS $ ([r|-i 's/\\\\/\\/g'|] :: String)
+    arg $ toS tmpDir <> "/maintainers.json"
 
 generatePackages ::
-     (MonadIO m, MonadLogger m, MonadError ShellCmdFailed m)
+     (MonadIO m, MonadLogger m, MonadError ExitCode m)
   => Text
   -> FilePath
   -> m ()
 generatePackages nixpkgs tmpDir =
-  shell $
-  command "nix-env" $ do
+  shell_ "nix-env" $ do
     switch "--arg"
     raw "config '{}'"
     switch "-qaP"
