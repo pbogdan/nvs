@@ -26,6 +26,9 @@ file. The format of the database is as follows:
 @
 
 -}
+
+{-# LANGUAGE FlexibleContexts #-}
+
 module Nixpkgs.Vuln.Excludes
   ( Excludes(..)
   , parseExcludes
@@ -36,6 +39,7 @@ import           Protolude
 import qualified Data.ByteString as Bytes
 import           Data.Yaml
 import           Nvd.Cve
+import Nixpkgs.Vuln.Types
 
 -- | Representation of entries in the excludes database.
 data Excludes = Excludes
@@ -53,10 +57,11 @@ instance FromJSON Excludes where
 
 -- | Load and parse excludes database.
 parseExcludes ::
-     FilePath -- ^ path tot he excludes database
-  -> IO Excludes
+     (MonadError NvsError m, MonadIO m)
+  => FilePath -- ^ path tot he excludes database
+  -> m Excludes
 parseExcludes path = do
-  s <- Bytes.readFile path
+  s <- liftIO . Bytes.readFile $path
   let excludesOrErr = decodeEither s
   case excludesOrErr of
     Left e -> panic $ "Can't parse excludes: " <> toS e

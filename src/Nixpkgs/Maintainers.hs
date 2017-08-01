@@ -1,4 +1,5 @@
 {-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE FlexibleContexts #-}
 
 {-|
 Module      : Nixpkgs.Maintainers
@@ -31,6 +32,7 @@ import           Data.Hashable (Hashable)
 import           Data.String (String)
 import qualified Data.Text as Text
 import           Nixpkgs.Packages
+import           Nixpkgs.Vuln.Types
 
 -- | Represents information about nixpkgs maintainer. Given the following entry
 -- in lib/maintainers.nix:
@@ -67,14 +69,14 @@ catEithers m = HashMap.fromList [(k, v) | (k, Right v) <- HashMap.toList m]
 --
 -- The result is a hash map keyed off maintainers' names.
 parseMaintainers ::
-     MonadIO m
+     (MonadError NvsError m, MonadIO m)
   => FilePath -- ^ path to the JSON file
   -> m (HashMap Text Maintainer)
 parseMaintainers path = do
   s <- liftIO . Bytes.readFile $ path
   let mtsOrErr = eitherDecodeStrict s
   case mtsOrErr of
-    Left e -> panic . show $ e
+    Left e -> throwError . FileParseError path . toS $ e
     Right mts ->
       return . catEithers . flip HashMap.mapWithKey mts $ \handle val ->
         case val of

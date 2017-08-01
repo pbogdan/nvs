@@ -1,7 +1,7 @@
 { mkDerivation, aeson, aeson-casing, attoparsec, base, bytestring
 , containers, directory, ede, hashable, hspec, lucid, monad-logger
 , optparse-applicative, protolude, QuickCheck, quickcheck-instances
-, raw-strings-qq, shell-cmd, stdenv, temporary, text
+, raw-strings-qq, shell-cmd, stdenv, temporary, text, transformers
 , unordered-containers, vector, yaml
 }:
 mkDerivation {
@@ -13,8 +13,8 @@ mkDerivation {
   libraryHaskellDepends = [
     aeson aeson-casing attoparsec base bytestring containers directory
     ede hashable lucid monad-logger optparse-applicative protolude
-    raw-strings-qq shell-cmd temporary text unordered-containers vector
-    yaml
+    raw-strings-qq shell-cmd temporary text transformers
+    unordered-containers vector yaml
   ];
   executableHaskellDepends = [ base protolude ];
   testHaskellDepends = [

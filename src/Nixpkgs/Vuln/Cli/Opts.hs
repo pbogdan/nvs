@@ -32,6 +32,7 @@ data Options =
           Text
           RenderMode
           Text
+          Bool
   deriving (Eq, Show)
 
 -- | Parser for the command line options.
@@ -47,7 +48,8 @@ parseOptions =
      (long "nixpkgs" <> metavar "nixpkgs" <> help "Path to nixpkgs checkout")) <*>
   flag HTML Markdown (long "markdown" <> help "render markdown instead of HTML") <*>
   (toS <$>
-   argument str (metavar "file" <> help "Output path for the generated report"))
+   argument str (metavar "file" <> help "Output path for the generated report")) <*>
+  switch (long "verbose" <> help "Verbose output")
 
 -- | Convenience function to add @--help@ support given a parser and
 -- description.

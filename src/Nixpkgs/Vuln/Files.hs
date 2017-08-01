@@ -22,10 +22,11 @@ import System.Directory hiding (findFile)
 --
 -- This is used when locating files such as data/excludes.yaml.
 findFile ::
-     FilePath -- ^ Path to be resolved
-  -> IO FilePath
+     MonadIO m
+  => FilePath -- ^ Path to be resolved
+  -> m FilePath
 findFile path = do
-  haveLocal <- doesFileExist path
+  haveLocal <- liftIO . doesFileExist $ path
   if haveLocal
     then return path
-    else getDataFileName path
+    else liftIO . getDataFileName $ path

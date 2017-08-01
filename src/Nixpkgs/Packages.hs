@@ -11,6 +11,7 @@ This module provides simple utilities to work with JSON representation of
 nixpkgs packages.
 -}
 {-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE FlexibleContexts #-}
 
 module Nixpkgs.Packages
   ( Package(..)
@@ -33,6 +34,7 @@ import           Data.String (String)
 import qualified Data.Text as Text
 import qualified Data.Vector as Vec
 import           Nixpkgs.Packages.Types
+import           Nixpkgs.Vuln.Types
 
 -- | Main data type for representing package information.
 data Package = Package
@@ -128,7 +130,10 @@ instance ToJSON LicenseDetails where
 -- > nix-env -qaP --json '*'
 --
 -- command. The result is a hash map keyed off packages' name.
-parsePackages :: (MonadIO m) => FilePath -> m (HashMap PackageName Package)
+parsePackages ::
+     (MonadError NvsError m, MonadIO m)
+  => FilePath
+  -> m (HashMap PackageName Package)
 parsePackages path = do
   s <- liftIO . Bytes.readFile $ path
   let parser =
@@ -136,7 +141,7 @@ parsePackages path = do
           sequenceA (parseJSON <$> (Vec.fromList . HashMap.elems $ o))
   let mRet = join (parseEither parser <$> eitherDecodeStrict s)
   case mRet of
-    Left e -> panic . toS $ e
+    Left e -> throwError . FileParseError path . toS $ e
     Right ret -> return . Vec.foldl' go HashMap.empty $ ret
   where
     go :: HashMap PackageName Package -> Package -> HashMap PackageName Package

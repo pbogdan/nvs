@@ -12,6 +12,7 @@ Utilities to interface with JSON feeds provided by NVD.
 -}
 
 {-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE FlexibleContexts #-}
 
 module Nvd.Cve
   ( CveId
@@ -41,6 +42,7 @@ import qualified Data.Vector as Vec
 import           Nixpkgs.Packages
 import           Nixpkgs.Packages.Aliases
 import           Nixpkgs.Packages.Types
+import           Nixpkgs.Vuln.Types
 import           Text.Read (read)
 
 -- @TODO: there should be validation of the CVE ID format
@@ -156,14 +158,17 @@ instance ToJSON Cve where
 
 -- | Utility function for parsing CVE information out of NVD JSON feed.
 parseCves ::
-     MonadIO m
+     (MonadError NvsError m, MonadIO m)
   => FilePath -- ^ Path to the NVD JSON feed file
   -> m (HashMap (PackageName, PackageVersion) (Set Cve))
 parseCves path = do
   s <- liftIO . Bytes.readFile $ path
   let parser = withObject "cves" $ \o -> o .: "CVE_Items" >>= parseJSON
   let mRet = join (parseEither parser <$> eitherDecodeStrict s)
-  return $ either (panic . toS) (cvesByPackage . Vec.map nvdCveToCve) mRet
+  either
+    (throwError . FileParseError path . toS)
+    (return . cvesByPackage . Vec.map nvdCveToCve)
+    mRet
 
 cvesByPackage :: Vector Cve -> HashMap (PackageName, PackageVersion) (Set Cve)
 cvesByPackage = Vec.foldl' go HashMap.empty

@@ -1,5 +1,3 @@
-{-# LANGUAGE FlexibleContexts #-}
-
 {-|
 Module      : Nixpkgs.Vuln.Cli
 Description : Command line interface to nvs.
@@ -14,17 +12,20 @@ Command line interface to nvs.
 -}
 
 {-# LANGUAGE QuasiQuotes #-}
+{-# LANGUAGE FlexibleContexts #-}
 
 module Nixpkgs.Vuln.Cli
   ( defaultMain
   ) where
 
-import Protolude
+import Protolude hiding (msg)
 
 import Control.Monad.Logger
+import Control.Monad.Trans.Except
 import Data.String (String)
-import Nixpkgs.Vuln.Report
 import Nixpkgs.Vuln.Cli.Opts
+import Nixpkgs.Vuln.Report
+import Nixpkgs.Vuln.Types
 import Options.Applicative (execParser)
 import Shell
 import System.IO.Temp
@@ -37,23 +38,33 @@ defaultMain =
   execParser (parseOptions `withInfo` "Experimental CVE scanner for nixpkgs")
 
 run :: Options -> IO ()
-run (Options nvdFeed nixpkgs mode out) =
+run (Options nvdFeed nixpkgs mode out verbose) =
   runStderrLoggingT $
+  filterLogger (\_ lvl -> verbose || (lvl >= LevelWarn)) $
   withSystemTempDirectory "nvs" $ \tmpDir -> do
     ret <-
       runExceptT $ do
-        generateMaintainers nixpkgs tmpDir
-        generatePackages nixpkgs tmpDir
-    case ret of
-      Left e -> panic . show $ e
-      Right _ ->
-        liftIO $
+        logInfoN "Generating maintainers.json"
+        generateMaintainers nixpkgs tmpDir `catchE`
+          (throwE . flip ShellCommandError "Preparing maintainers.json failed")
+        logInfoN "Generating packages.json"
+        generatePackages nixpkgs tmpDir `catchE`
+          (throwE . flip ShellCommandError "Preparing packages.json failed")
+        logInfoN "Generating report"
         report
           (toS nvdFeed)
           (toS tmpDir <> "/packages.json")
           (toS tmpDir <> "/maintainers.json")
           (toS out)
           mode
+    case ret of
+      Left (ShellCommandError _ msg) -> do
+        logErrorN $ "Shell command failed: " <> show msg
+        liftIO exitFailure
+      Left (FileParseError path msg) -> do
+        logErrorN $ "Failed parsing file " <> toS path <> ":" <> show msg
+        liftIO exitFailure
+      Right _ -> liftIO exitSuccess
 
 generateMaintainers ::
      (MonadIO m, MonadLogger m, MonadError ExitCode m)

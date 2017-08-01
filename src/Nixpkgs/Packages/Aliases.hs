@@ -24,6 +24,8 @@ file. The format of the database is as follows:
 
 -}
 
+{-# LANGUAGE FlexibleContexts #-}
+
 module Nixpkgs.Packages.Aliases
   ( PackageAlias(..)
   , parseAliases
@@ -37,6 +39,7 @@ import qualified Data.HashMap.Strict as HashMap
 import qualified Data.Vector as Vec
 import           Data.Yaml
 import           Nixpkgs.Packages.Types
+import           Nixpkgs.Vuln.Types
 
 -- | Representation of a single entry from aliases database.
 data PackageAlias = PackageAlias
@@ -53,14 +56,15 @@ instance FromJSON PackageAlias where
 -- | Load and parse aliases database. The returned hash map is keyed off of the
 -- names of nixpkgs packages.
 parseAliases ::
-     FilePath -- ^ path to aliases database file
-  -> IO (HashMap PackageName PackageAlias)
+     (MonadError NvsError m, MonadIO m)
+  => FilePath -- ^ path to aliases database file
+  -> m (HashMap PackageName PackageAlias)
 parseAliases path = do
-  s <- Bytes.readFile path
+  s <- liftIO . Bytes.readFile $ path
   let parser = withArray "Aliases" $ \a -> sequenceA (parseJSON <$> a)
   let mRet = join (parseEither parser <$> decodeEither s)
   case mRet of
-    Left e -> panic . toS $ e
+    Left e -> throwError . FileParseError path . toS $ e
     Right ret -> return . Vec.foldl' go HashMap.empty $ ret
   where
     go ::

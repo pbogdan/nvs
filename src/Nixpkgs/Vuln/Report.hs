@@ -12,6 +12,7 @@ Report rendering utilities.
 -}
 
 {-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE FlexibleContexts #-}
 
 module Nixpkgs.Vuln.Report
   ( RenderMode(..)
@@ -20,6 +21,7 @@ module Nixpkgs.Vuln.Report
 
 import           Protolude hiding (link)
 
+import           Control.Monad.Logger
 import           Data.Aeson
 import           Data.Aeson.Casing
 import qualified Data.ByteString as Bytes
@@ -37,6 +39,7 @@ import           Nixpkgs.Packages.Aliases
 import           Nixpkgs.Packages.Types
 import           Nixpkgs.Vuln.Excludes
 import           Nixpkgs.Vuln.Files
+import           Nixpkgs.Vuln.Types
 import           Nvd.Cve
 import           Text.EDE
 
@@ -73,17 +76,23 @@ dropNvdExcludes es =
 -- To see how the packages.json and mainers.json files are generated please
 -- refer to "Nixpkgs.Vuln.Cli" module.
 report ::
-     FilePath -- ^ path to NVD JSON feed
+     (MonadError NvsError m, MonadLogger m, MonadIO m)
+  => FilePath -- ^ path to NVD JSON feed
   -> FilePath -- ^ path to packages.json file
   -> FilePath -- ^ path to maintainers.json file
   -> FilePath -- ^ output path for the generated report
   -> RenderMode -- ^ what type of output to generate
-  -> IO ()
+  -> m ()
 report cvePath pkgsPath mtsPath outPath mode = do
+  logInfoN "Parsing excludes"
   es <- parseExcludes =<< findFile "data/vuln-excludes.yaml"
+  logInfoN "Parsing NVD feed"
   cves <- dropNvdExcludes es <$> parseCves cvePath
+  logInfoN "Parsing packages"
   pkgs <- parsePackages pkgsPath
+  logInfoN "Parsing maintainers"
   mts <- parseMaintainers mtsPath
+  logInfoN "Parsing aliases"
   aliases <- parseAliases =<< findFile "data/package-aliases.yaml"
   let vulns =
         HashMap.foldl'
@@ -97,9 +106,13 @@ report cvePath pkgsPath mtsPath outPath mode = do
   renderer vulns mts outPath
 
 renderHTML ::
-     [(Package, Set Cve)] -> HashMap Text Maintainer -> FilePath -> IO ()
+     MonadIO m
+  => [(Package, Set Cve)]
+  -> HashMap Text Maintainer
+  -> FilePath
+  -> m ()
 renderHTML vulns mts outPath =
-  renderToFile outPath $ do
+  liftIO . renderToFile outPath $ do
     doctype_
     head_ $ do
       meta_ [makeAttribute "charset" "utf-8"]
@@ -176,7 +189,11 @@ renderMaintainer mt mts =
            (toHtml ("@" <> maintainerHandle mt'))
 
 renderMarkdown ::
-     [(Package, Set Cve)] -> HashMap Text Maintainer -> FilePath -> IO ()
+     MonadIO m
+  => [(Package, Set Cve)]
+  -> HashMap Text Maintainer
+  -> FilePath
+  -> m ()
 renderMarkdown vulns mts outPath = do
   let cves' =
         map (uncurry3 CveWithPackage) .
@@ -188,13 +205,13 @@ renderMarkdown vulns mts outPath = do
         vulns
       Just env =
         fromValue . toJSON . HashMap.fromList $ [("cves" :: Text, cves')]
-  tpl <- eitherParseFile =<< findFile "templates/cves.ede"
+  tpl <- liftIO . eitherParseFile =<< findFile "templates/cves.ede"
   let ret = flip eitherRender env =<< tpl
   case ret of
     Left e -> do
       putText $ "Rendering failed: " <> toS e
-      exitFailure
-    Right out -> Bytes.writeFile (toS outPath) (toS out)
+      liftIO exitFailure
+    Right out -> liftIO $ Bytes.writeFile (toS outPath) (toS out)
   where
     fst3 :: (a, b, c) -> a
     fst3 (a, _, _) = a
