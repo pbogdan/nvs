@@ -1,4 +1,4 @@
-module Nixpkgs.Vuln.Types where
+module Nvs.Types where
 
 import Protolude
 

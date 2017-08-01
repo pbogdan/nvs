@@ -1,5 +1,5 @@
 {-|
-Module      : Nixpkgs.Vuln.Aliases
+Module      : Nvs.Aliases
 Description : Package aliases support.
 Copyright   : (c) Piotr Bogdan, 2017
 License     : BSD3
@@ -39,7 +39,7 @@ import qualified Data.HashMap.Strict as HashMap
 import qualified Data.Vector as Vec
 import           Data.Yaml
 import           Nixpkgs.Packages.Types
-import           Nixpkgs.Vuln.Types
+import           Nvs.Types
 
 -- | Representation of a single entry from aliases database.
 data PackageAlias = PackageAlias

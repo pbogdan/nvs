@@ -42,7 +42,7 @@ import qualified Data.Vector as Vec
 import           Nixpkgs.Packages
 import           Nixpkgs.Packages.Aliases
 import           Nixpkgs.Packages.Types
-import           Nixpkgs.Vuln.Types
+import           Nvs.Types
 import           Text.Read (read)
 
 -- @TODO: there should be validation of the CVE ID format

@@ -1,5 +1,5 @@
 {-|
-Module      : Nixpkgs.Vuln.Excludes
+Module      : Nvs.Excludes
 Description : Vulnerability exclusion support.
 Copyright   : (c) Piotr Bogdan, 2017
 License     : BSD3
@@ -29,7 +29,7 @@ file. The format of the database is as follows:
 
 {-# LANGUAGE FlexibleContexts #-}
 
-module Nixpkgs.Vuln.Excludes
+module Nvs.Excludes
   ( Excludes(..)
   , parseExcludes
   ) where
@@ -39,7 +39,7 @@ import           Protolude
 import qualified Data.ByteString as Bytes
 import           Data.Yaml
 import           Nvd.Cve
-import Nixpkgs.Vuln.Types
+import Nvs.Types
 
 -- | Representation of entries in the excludes database.
 data Excludes = Excludes

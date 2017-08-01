@@ -1,5 +1,5 @@
 {-|
-Module      : Nixpkgs.Vuln.Cli.Opts
+Module      : Nvs.Cli.Opts
 Description : Command line arguments parser for nvs command line interface.
 Copyright   : (c) Piotr Bogdan, 2017
 License     : BSD3
@@ -11,7 +11,7 @@ Command line arguments parser for nvs command line interface.
 
 -}
 
-module Nixpkgs.Vuln.Cli.Opts
+module Nvs.Cli.Opts
   ( Options(..)
   , parseOptions
   , withInfo
@@ -19,7 +19,7 @@ module Nixpkgs.Vuln.Cli.Opts
 
 import Protolude
 
-import Nixpkgs.Vuln.Report
+import Nvs.Report
 import Options.Applicative
 
 -- | Command line options for the CLI. The fields represent:

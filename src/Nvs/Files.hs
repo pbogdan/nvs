@@ -1,5 +1,5 @@
 {-|
-Module      : Nixpkgs.Vuln.Files
+Module      : Nvs.Files
 Copyright   : (c) Piotr Bogdan, 2017
 License     : BSD3
 Maintainer  : ppbogdan@gmail.com
@@ -8,7 +8,7 @@ Portability : Unknown
 
 
 -}
-module Nixpkgs.Vuln.Files
+module Nvs.Files
   (findFile) where
 
 import Protolude

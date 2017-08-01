@@ -17,12 +17,12 @@ library
         Nixpkgs.Packages
         Nixpkgs.Packages.Aliases
         Nixpkgs.Packages.Types
-        Nixpkgs.Vuln.Cli
-        Nixpkgs.Vuln.Cli.Opts
-        Nixpkgs.Vuln.Excludes
-        Nixpkgs.Vuln.Files
-        Nixpkgs.Vuln.Report
-        Nixpkgs.Vuln.Types
+        Nvs.Cli
+        Nvs.Cli.Opts
+        Nvs.Excludes
+        Nvs.Files
+        Nvs.Report
+        Nvs.Types
         Nvd.Cve
     build-depends:
         base >=4.9 && <4.10,

@@ -32,7 +32,7 @@ import           Data.Hashable (Hashable)
 import           Data.String (String)
 import qualified Data.Text as Text
 import           Nixpkgs.Packages
-import           Nixpkgs.Vuln.Types
+import           Nvs.Types
 
 -- | Represents information about nixpkgs maintainer. Given the following entry
 -- in lib/maintainers.nix:

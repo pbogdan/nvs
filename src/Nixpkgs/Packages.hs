@@ -34,7 +34,7 @@ import           Data.String (String)
 import qualified Data.Text as Text
 import qualified Data.Vector as Vec
 import           Nixpkgs.Packages.Types
-import           Nixpkgs.Vuln.Types
+import           Nvs.Types
 
 -- | Main data type for representing package information.
 data Package = Package

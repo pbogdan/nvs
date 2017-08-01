@@ -2,7 +2,7 @@ module Main where
 
 import Protolude
 
-import Nixpkgs.Vuln.Cli
+import Nvs.Cli
 
 main :: IO ()
 main = defaultMain

@@ -1,5 +1,5 @@
 {-|
-Module      : Nixpkgs.Vuln.Report
+Module      : Nvs.Report
 Description : Report rendering utilities.
 Copyright   : (c) Piotr Bogdan, 2017
 License     : BSD3
@@ -14,7 +14,7 @@ Report rendering utilities.
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE FlexibleContexts #-}
 
-module Nixpkgs.Vuln.Report
+module Nvs.Report
   ( RenderMode(..)
   , report
   ) where
@@ -37,9 +37,9 @@ import           Nixpkgs.Maintainers
 import           Nixpkgs.Packages
 import           Nixpkgs.Packages.Aliases
 import           Nixpkgs.Packages.Types
-import           Nixpkgs.Vuln.Excludes
-import           Nixpkgs.Vuln.Files
-import           Nixpkgs.Vuln.Types
+import           Nvs.Excludes
+import           Nvs.Files
+import           Nvs.Types
 import           Nvd.Cve
 import           Text.EDE
 
@@ -74,7 +74,7 @@ dropNvdExcludes es =
 -- package set.
 --
 -- To see how the packages.json and mainers.json files are generated please
--- refer to "Nixpkgs.Vuln.Cli" module.
+-- refer to "Nvs.Cli" module.
 report ::
      (MonadError NvsError m, MonadLogger m, MonadIO m)
   => FilePath -- ^ path to NVD JSON feed
