@@ -27,6 +27,7 @@ import           Data.Aeson.Casing
 import qualified Data.ByteString as Bytes
 import           Data.HashMap.Strict (HashMap)
 import qualified Data.HashMap.Strict as HashMap
+import           Data.Hashable (Hashable)
 import           Data.String (String)
 import qualified Data.Text as Text
 import           Nixpkgs.Packages
@@ -52,10 +53,10 @@ data Maintainer = Maintainer
 instance ToJSON Maintainer where
   toJSON = genericToJSON $ aesonDrop (length ("Maintainer" :: String)) camelCase
 
--- | Equivalent of fromJust for Either. Partial, therefore unsafe.
-fromEither :: Either a b -> b
-fromEither (Right x) = x
-fromEither (Left _) = panic "fromEither"
+-- @TODO: it would perhaps make sense not to use this function on throw error in
+-- parseMaintainers, instead of silently dropping Left's
+catEithers :: (Eq k, Hashable k) => HashMap k (Either t v) -> HashMap k v
+catEithers m = HashMap.fromList [(k, v) | (k, Right v) <- HashMap.toList m]
 
 -- | Utility function for parsing maintainer information out of a JSON file. The
 -- expected structure of the said file is follows:
@@ -75,9 +76,7 @@ parseMaintainers path = do
   case mtsOrErr of
     Left e -> panic . show $ e
     Right mts ->
-      return .
-      HashMap.map fromEither .
-      HashMap.filter isRight . flip HashMap.mapWithKey mts $ \handle val ->
+      return . catEithers . flip HashMap.mapWithKey mts $ \handle val ->
         case val of
           String mt ->
             Right
