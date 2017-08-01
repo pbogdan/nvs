@@ -96,7 +96,7 @@ instance FromJSON NvdCve where
     NvdCve <$> (cve >>= (.: "CVE_data_meta") >>= (.: "ID")) <*>
       (cve >>= (.: "affects") >>= (.: "vendor") >>= (.: "vendor_data")) <*>
       pure desc
-  parseJSON x = panic . show $ x
+  parseJSON _ = mzero
 
 instance ToJSON NvdCve where
   toJSON = genericToJSON $ aesonDrop (length ("NvdCve" :: String)) camelCase
@@ -111,7 +111,7 @@ instance FromJSON VendorData where
   parseJSON (Object o) =
     VendorData <$> o .: "vendor_name" <*>
     (o .: "product" >>= (.: "product_data"))
-  parseJSON x = panic . show $ x
+  parseJSON _ = mzero
 
 instance ToJSON VendorData where
   toJSON = genericToJSON $ aesonDrop (length ("VendorData" :: String)) camelCase
@@ -132,7 +132,7 @@ instance FromJSON VendorProduct where
           Object o' -> o' .: "version_value"
           _ -> fail "version_data must be a list of objects"
     VendorProduct <$> o .: "product_name" <*> (pure . Vec.toList $ vers)
-  parseJSON x = panic . show $ x
+  parseJSON _ = mzero
 
 instance ToJSON VendorProduct where
   toJSON =

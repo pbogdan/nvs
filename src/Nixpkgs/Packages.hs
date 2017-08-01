@@ -99,7 +99,7 @@ instance ToJSON PackageLicense where
 instance FromJSON PackageLicense where
   parseJSON js@(Object _) = DetailedLicense <$> parseJSON js
   parseJSON (String s) = pure . BasicLicense $ s
-  parseJSON x = panic . show $ x
+  parseJSON _ = mzero
 
 -- | Detailed representation of a license.
 data LicenseDetails = LicenseDetails
@@ -116,7 +116,7 @@ instance FromJSON LicenseDetails where
   parseJSON (Object o) =
     LicenseDetails <$> o .:? "shortName" <*> o .:? "fullName" <*> o .:? "url" <*>
     o .:? "spdxId"
-  parseJSON x = panic . show $ x
+  parseJSON _ = mzero
 
 instance ToJSON LicenseDetails where
   toJSON =

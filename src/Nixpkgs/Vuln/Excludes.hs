@@ -51,7 +51,6 @@ instance FromJSON Excludes where
     (o .: "glsa" >>= (.: "excludes"))
   parseJSON _ = mzero
 
-
 -- | Load and parse excludes database.
 parseExcludes ::
      FilePath -- ^ path tot he excludes database
