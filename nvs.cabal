@@ -5,7 +5,7 @@ build-type: Simple
 license: BSD3
 license-file: LICENSE
 maintainer: ppbogdan@gmail.com
-homepage: https://github.com/pbogdan/nixpkgs-vuln-scanner
+homepage: https://github.com/pbogdan/nvs
 author: Piotr Bogdan
 data-files:
     templates/*.ede

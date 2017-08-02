@@ -1,6 +1,6 @@
 # nixpkgs vulnerability scanner
 
-nixpkgs-vuln-scanner (nvs) is a tool working against a local [nixpkgs](https://github.com/NixOS/nixpkgs) checkout to scan for potentially present vulnerabilities published in [National Vulnerability Database](https://nvd.nist.gov/).
+nvs is a tool working against a local [nixpkgs](https://github.com/NixOS/nixpkgs) checkout to scan for potentially present vulnerabilities published in [National Vulnerability Database](https://nvd.nist.gov/).
 
 nvs is in an early stage of development, as such the results it produces may not be 100% accurate. As it internally relies on `nix-env` to query the available packages is it subject to its limitations.
 
@@ -9,8 +9,8 @@ nvs is in an early stage of development, as such the results it produces may not
 Requires [Nix](https://nixos.org/nix/) package manager:
 
 ```
-$ git clone https://github.com/pbogdan/nixpkgs-vuln-scanner
-$ cd nixpkgs-vuln-scanner
+$ git clone https://github.com/pbogdan/nvs
+$ cd nvs
 $ nix-build
 $ nix-env -i ./result
 ```
@@ -59,7 +59,7 @@ will produce an HTML report in the current directory. Alternatively the `--markd
 
 If for any reason you want to exclude a particular vulnerability for being considered when generating the report please add it to `data/excludes.yaml` file. Once you modified the file and wish to preview the changes you must either:
 
-- invoke `nvs` from your checkout of nixpkgs-vuln-scanner
+- invoke `nvs` from your checkout of nvs
 - rebuild & reinstall `nvs`.
 
 `nvs` looks for the file either relative to the current working directory, otherwise if not found it will use the version bundled with the installed package.

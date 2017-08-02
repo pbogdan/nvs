@@ -21,6 +21,6 @@ mkDerivation {
     base containers hspec protolude QuickCheck quickcheck-instances
     text unordered-containers vector
   ];
-  homepage = "https://github.com/pbogdan/nixpkgs-vuln-scanner";
+  homepage = "https://github.com/pbogdan/nvs";
   license = stdenv.lib.licenses.bsd3;
 }
