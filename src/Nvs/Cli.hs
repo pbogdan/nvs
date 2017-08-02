@@ -11,25 +11,24 @@ Command line interface to nvs.
 
 -}
 
-{-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE FlexibleContexts #-}
 
 module Nvs.Cli
   ( defaultMain
   ) where
 
-import Protolude hiding (msg)
+import           Protolude hiding (msg)
 
-import Control.Monad.Logger
-import Control.Monad.Trans.Except
-import Data.String (String)
-import Nvs.Cli.Opts
-import Nvs.Report
-import Nvs.Types
-import Options.Applicative (execParser)
-import Shell
-import System.IO.Temp
-import Text.RawString.QQ
+import           Control.Monad.Logger
+import           Control.Monad.Trans.Except
+import qualified Data.Text.IO as Text
+import           Nvs.Cli.Opts
+import           Nvs.Report
+import           Nvs.Types
+import           Options.Applicative (execParser)
+import           Shell
+import           System.IO.Temp
+import           Text.Read (read)
 
 -- | Default main function.
 defaultMain :: IO ()
@@ -72,25 +71,14 @@ generateMaintainers ::
   -> FilePath
   -> m ()
 generateMaintainers nixpkgs tmpDir = do
-  shell_ "nix-instantiate" $ do
-    arg "--eval"
-    option
-      "-E"
-      ("let m = import " <> nixpkgs <>
-       "/lib/maintainers.nix; in builtins.toJSON m")
-    raw $ " > " <> toS tmpDir <> "/maintainers.json"
-  shell_ "sed" $ do
-    raw . toS $ ([r|-i 's/"{/{/g'|] :: String)
-    arg $ toS tmpDir <> "/maintainers.json"
-  shell_ "sed" $ do
-    raw . toS $ ([r|-i 's/}"/}/g'|] :: String)
-    arg $ toS tmpDir <> "/maintainers.json"
-  shell_ "sed" $ do
-    raw . toS $ ([r|-i 's/\\"/"/g'|] :: String)
-    arg $ toS tmpDir <> "/maintainers.json"
-  shell_ "sed" $ do
-    raw . toS $ ([r|-i 's/\\\\/\\/g'|] :: String)
-    arg $ toS tmpDir <> "/maintainers.json"
+  ret <-
+    shell "nix-instantiate" $ do
+      arg "--eval"
+      option
+        "-E"
+        ("let m = import " <> nixpkgs <>
+         "/lib/maintainers.nix; in builtins.toJSON m")
+  liftIO $ Text.writeFile (tmpDir <> "/maintainers.json") (read . toS $ ret)
 
 generatePackages ::
      (MonadIO m, MonadLogger m, MonadError ExitCode m)
