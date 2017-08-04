@@ -64,5 +64,5 @@ parseExcludes path = do
   s <- liftIO . Bytes.readFile $path
   let excludesOrErr = decodeEither s
   case excludesOrErr of
-    Left e -> panic $ "Can't parse excludes: " <> toS e
+    Left e -> throwError $ FileParseError path (toS e)
     Right es -> return es
