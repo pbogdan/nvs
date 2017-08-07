@@ -1,10 +1,11 @@
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TypeFamilies #-}
 
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
 module CveSpec where
 
-import           Protolude
+import           Protolude hiding (Any)
 
 import qualified Data.HashMap.Strict as HashMap
 import           Data.List.NonEmpty (NonEmpty)
@@ -13,9 +14,13 @@ import qualified Data.Set as Set
 import           Data.String
 import qualified Data.Text as Text
 import qualified Data.Vector as Vec
+import           GHC.TypeLits
 import           Nixpkgs.Packages
 import           Nixpkgs.Packages.Aliases
 import           Nixpkgs.Packages.Types
+import           Nvd.Cpe
+import           Nvd.Cpe.Configuration
+import           Nvd.Cpe.Uri
 import           Nvd.Cve
 import           Test.Hspec
 import           Test.Hspec.QuickCheck (modifyMaxSize)
@@ -38,9 +43,41 @@ instance Arbitrary CveId where
     id <- show <$> elements [0 .. 10000 :: Int]
     return $ fromString ("CVE-" <> year <> "-" <> id)
 
+instance Arbitrary CpePart where
+  arbitrary = elements [Application, OS, Hardware, Unknown]
+
+instance Arbitrary b => Arbitrary (CpeValue a b) where
+  arbitrary = oneof [pure Any, pure NA, CpeValue <$> arbitrary]
+
+instance Arbitrary CpeUri where
+  arbitrary =
+    CpeUri <$> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary <*>
+    arbitrary <*>
+    arbitrary <*>
+    arbitrary <*>
+    arbitrary <*>
+    arbitrary <*>
+    arbitrary
+
+instance Arbitrary Cpe where
+  arbitrary = Cpe <$> arbitrary <*> arbitrary <*> arbitrary
+
+instance Arbitrary Op where
+  arbitrary = elements [And, Or]
+
+instance Arbitrary a => Arbitrary (Terms a) where
+  arbitrary = Terms <$> arbitrary <*> arbitrary
+
+instance (s ~ PayloadKey a, KnownSymbol s, Arbitrary a) =>
+         Arbitrary (Payload a s) where
+  arbitrary = Payload <$> arbitrary
+
+instance Arbitrary a => Arbitrary (Configuration a) where
+  arbitrary = oneof [Leaf <$> arbitrary, Branch <$> arbitrary <*> arbitrary]
+
 instance Arbitrary Cve where
   arbitrary =
-    Cve <$> arbitrary <*> arbitrary <*>
+    Cve <$> arbitrary <*> arbitrary <*> arbitrary <*>
     (arbitrary `suchThat` (\x -> Text.length x <= 10))
 
 newtype CveConstProducts = CveConstProducts
@@ -52,7 +89,9 @@ dummyPackage = ("dummy", "0.0.1")
 
 instance Arbitrary CveConstProducts where
   arbitrary = do
-    cve <- Cve <$> arbitrary <*> pure [dummyPackage] <*> pure "description"
+    cve <-
+      Cve <$> arbitrary <*> pure [dummyPackage] <*> arbitrary <*>
+      pure "description"
     return . CveConstProducts $ cve
 
 newtype CveMultiple = CveMultiple

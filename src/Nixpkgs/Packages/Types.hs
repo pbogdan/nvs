@@ -21,6 +21,8 @@ module Nixpkgs.Packages.Types
   , PackageVersion
   , displayPackageVersion
   , parsePackageVersion
+  , ParsedPackageVersion
+  , mkParsedPackageVersion
   ) where
 
 import           Protolude
@@ -30,6 +32,7 @@ import           Data.Char
 import           Data.Hashable
 import           Data.String (IsString(..))
 import qualified Data.Text as Text
+import           Data.Versions
 
 newtype PackageName =
   PackageName Text
@@ -89,3 +92,15 @@ parsePackageVersion s =
          in if isDigit c
               then PackageVersion . Text.drop 1 $ suffix
               else parsePackageVersion . Text.drop 1 $ suffix
+
+newtype ParsedPackageVersion =
+  ParsedPackageVersion Versioning
+  deriving (Eq, Ord, Show)
+
+hush' :: Either e a -> Maybe a
+hush' (Left _) = Nothing
+hush' (Right x) = Just x
+
+mkParsedPackageVersion :: PackageVersion -> Maybe ParsedPackageVersion
+mkParsedPackageVersion (PackageVersion v) =
+  ParsedPackageVersion <$> (hush' . parseV $ v)
