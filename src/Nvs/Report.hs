@@ -16,6 +16,7 @@ Report rendering utilities.
 
 module Nvs.Report
   ( RenderMode(..)
+  , MatchMode(..)
   , report
   ) where
 
@@ -37,10 +38,11 @@ import           Nixpkgs.Maintainers
 import           Nixpkgs.Packages
 import           Nixpkgs.Packages.Aliases
 import           Nixpkgs.Packages.Types
+import           Nvd.Cpe.Configuration
+import           Nvd.Cve
 import           Nvs.Excludes
 import           Nvs.Files
 import           Nvs.Types
-import           Nvd.Cve
 import           Text.EDE
 
 -- | Specifies rendering mode, or more precisely the output format.
@@ -49,8 +51,13 @@ data RenderMode
   | Markdown
   deriving (Eq, Show)
 
+data MatchMode
+  = MatchSimple
+  | MatchCpe
+  deriving (Eq, Show)
+
 data CveWithPackage = CveWithPackage
-  { _cveWithPackageCve :: Cve
+  { _cveWithPackageCve :: Cve CpeConfiguration
   , _cveWithPackagePackage :: Package
   , _cveWithPackageMaintainers :: [Maintainer]
   } deriving (Eq, Generic, Show)
@@ -60,9 +67,7 @@ instance ToJSON CveWithPackage where
     genericToJSON $ aesonDrop (length ("_CveWithPackage" :: String)) camelCase
 
 dropNvdExcludes ::
-     Excludes
-  -> HashMap (PackageName, PackageVersion) (Set Cve)
-  -> HashMap (PackageName, PackageVersion) (Set Cve)
+     Excludes -> HashMap k (Set (Cve a)) -> HashMap k (Set (Cve a))
 dropNvdExcludes es =
   let toDrop = Set.fromList . nvdExcludes $ es
   in HashMap.filter (not . Set.null) .
@@ -94,11 +99,7 @@ report cvePath pkgsPath mtsPath outPath mode = do
   mts <- parseMaintainers mtsPath
   logInfoN "Parsing aliases"
   aliases <- parseAliases =<< findFile "data/package-aliases.yaml"
-  let vulns =
-        HashMap.foldl'
-          (\acc pkg -> cvesForPackage pkg aliases cves : acc)
-          []
-          pkgs
+  let vulns = vulnsFor pkgs aliases cves
       renderer =
         case mode of
           HTML -> renderHTML
@@ -107,7 +108,7 @@ report cvePath pkgsPath mtsPath outPath mode = do
 
 renderHTML ::
      MonadIO m
-  => [(Package, Set Cve)]
+  => [(Package, Set (Cve CpeConfiguration))]
   -> HashMap Text Maintainer
   -> FilePath
   -> m ()
@@ -190,7 +191,7 @@ renderMaintainer mt mts =
 
 renderMarkdown ::
      MonadIO m
-  => [(Package, Set Cve)]
+  => [(Package, Set (Cve CpeConfiguration))]
   -> HashMap Text Maintainer
   -> FilePath
   -> m ()

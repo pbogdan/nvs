@@ -1,3 +1,4 @@
+{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeFamilies #-}
 
@@ -22,6 +23,7 @@ import           Nvd.Cpe
 import           Nvd.Cpe.Configuration
 import           Nvd.Cpe.Uri
 import           Nvd.Cve
+import           Nvd.Cve.Types
 import           Test.Hspec
 import           Test.Hspec.QuickCheck (modifyMaxSize)
 import           Test.QuickCheck
@@ -75,27 +77,36 @@ instance (s ~ PayloadKey a, KnownSymbol s, Arbitrary a) =>
 instance Arbitrary a => Arbitrary (Configuration a) where
   arbitrary = oneof [Leaf <$> arbitrary, Branch <$> arbitrary <*> arbitrary]
 
-instance Arbitrary Cve where
+instance Arbitrary VendorProduct where
+  arbitrary = VendorProduct <$> arbitrary <*> arbitrary
+
+instance Arbitrary VendorData where
   arbitrary =
-    Cve <$> arbitrary <*> arbitrary <*> arbitrary <*>
+    VendorData <$> (arbitrary `suchThat` (\x -> Text.length x <= 10)) <*>
+    arbitrary
+
+instance Arbitrary (Cve VendorData) where
+  arbitrary =
+    Cve <$> arbitrary <*> arbitrary <*>
     (arbitrary `suchThat` (\x -> Text.length x <= 10))
 
 newtype CveConstProducts = CveConstProducts
-  { unCveConstProducts :: Cve
+  { unCveConstProducts :: Cve VendorData
   } deriving (Eq, Show)
 
 dummyPackage :: (PackageName, PackageVersion)
 dummyPackage = ("dummy", "0.0.1")
 
+dummyVendorData :: VendorData
+dummyVendorData = VendorData "" [VendorProduct "dummy" ["0.0.1"]]
+
 instance Arbitrary CveConstProducts where
   arbitrary = do
-    cve <-
-      Cve <$> arbitrary <*> pure [dummyPackage] <*> arbitrary <*>
-      pure "description"
+    cve <- Cve <$> arbitrary <*> pure [dummyVendorData] <*> pure "description"
     return . CveConstProducts $ cve
 
 newtype CveMultiple = CveMultiple
-  { unCveMultiple :: Cve
+  { unCveMultiple :: Cve VendorData
   } deriving (Eq, Show)
 
 instance Arbitrary CveMultiple where
@@ -110,14 +121,14 @@ instance Arbitrary Package where
 spec :: Spec
 spec = do
   describe "Given CVE affecting multiple packages" $ do
-    modifyMaxSize (const 100000) $ do
+    modifyMaxSize (const 200) $ do
       it "all of them are reported" $
         property $ \(CveMultiple cve) ->
-          let packages = cveAffects cve
+          let packages = cveProducts cve
               aliases = HashMap.empty
               cves =
                 foldl'
-                  (\acc pkg -> HashMap.insert pkg (Set.singleton cve) acc)
+                  (\acc (name, _) -> HashMap.insert name (Set.singleton cve) acc)
                   HashMap.empty
                   packages
               ret =
@@ -127,7 +138,7 @@ spec = do
                   packages
           in length packages `shouldBe` length ret
   describe "Given multiple CVEs affecting single product" $ do
-    modifyMaxSize (const 1000) $ do
+    modifyMaxSize (const 200) $ do
       it "all of them are reported" $
         property $ \(cves :: NonEmpty CveConstProducts) ->
           let byPackage =
@@ -141,20 +152,20 @@ spec = do
                   byPackage
           in (length . NE.nub $ cves) `shouldBe` (Set.size . snd $ forPackage)
   describe "Given non-empty aliases database" $ do
-    modifyMaxSize (const 100000) $ do
+    modifyMaxSize (const 200) $ do
       it "they are taken into account" $
-        property $ \(cve :: Cve) -> do
+        property $ \(cve :: Cve VendorData) -> do
           alias <-
-            arbitrary `suchThat` (\x -> x `notElem` map fst (cveAffects cve))
-          let pNames = map fst . cveAffects $ cve
+            arbitrary `suchThat` (\x -> x `notElem` map fst (cveProducts cve))
+          let pNames = map fst . cveProducts $ cve
               aliases =
                 HashMap.fromList $
                 zip pNames (map (flip PackageAlias [alias]) pNames)
-              packages = cveAffects cve
+              packages = cveProducts cve
               cves =
                 foldl'
-                  (\acc (_, ver) ->
-                     HashMap.insert (alias, ver) (Set.singleton cve) acc)
+                  (\acc (_, _) ->
+                     HashMap.insert alias (Set.singleton cve) acc)
                   HashMap.empty
                   packages
               ret =

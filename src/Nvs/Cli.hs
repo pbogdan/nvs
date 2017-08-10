@@ -37,7 +37,7 @@ defaultMain =
   execParser (parseOptions `withInfo` "Experimental CVE scanner for nixpkgs")
 
 run :: Options -> IO ()
-run (Options nvdFeed nixpkgs mode out verbose) =
+run (Options nvdFeed nixpkgs mode _ out verbose) =
   runStderrLoggingT $
   filterLogger (\_ lvl -> verbose || (lvl >= LevelWarn)) $
   withSystemTempDirectory "nvs" $ \tmpDir -> do

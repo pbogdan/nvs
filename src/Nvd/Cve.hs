@@ -1,3 +1,10 @@
+{-# LANGUAGE DeriveFoldable #-}
+{-# LANGUAGE DeriveFunctor #-}
+{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+
 {-|
 Module      : Nvd.Cve
 Description : Utilities to interface with JSON feeds provided by NVD.
@@ -11,17 +18,17 @@ Utilities to interface with JSON feeds provided by NVD.
 
 -}
 
-{-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE FlexibleContexts #-}
-
 module Nvd.Cve
   ( CveId
   , displayCveId
   , Cve(..)
   , VendorData(..)
+  , VendorProduct(..)
+  , cveProducts
   , parseCves
   , cvesByPackage
   , cvesForPackage
+  , vulnsFor
   ) where
 
 import           Protolude
@@ -42,6 +49,8 @@ import qualified Data.Vector as Vec
 import           Nixpkgs.Packages
 import           Nixpkgs.Packages.Aliases
 import           Nixpkgs.Packages.Types
+import           Nvd.Cpe.Configuration
+import           Nvd.Cve.Types
 import           Nvs.Types
 import           Text.Read (read)
 
@@ -81,13 +90,19 @@ instance Ord CveId where
 -- | Representation of a CVE parsed out of NVD feed. Currently only fields
 -- directly needed by this project are extracted, with the rest of them
 -- discarded.
-data NvdCve = NvdCve
-  { nvdCveId :: CveId -- ^ The ID of the CVE such as CVE-2016-5253.
-  , nvdCveAffects :: [VendorData] -- ^ List of affected vendors and products.
-  , nvdCveDescription :: Text -- ^ Description of the CVE.
-  } deriving (Eq, Generic, Show)
+data Cve a = Cve
+  { cveId :: CveId -- ^ The ID of the CVE such as CVE-2016-5253.
+  , cveAffects :: [a] -- ^ List of affected vendors and products.
+  , cveDescription :: Text -- ^ Description of the CVE.
+  } deriving (Eq, Foldable, Functor, Generic, Ord, Show)
 
-instance FromJSON NvdCve where
+instance Affects a => Affects (Cve a) where
+  packages = concatMap packages
+  isAffected x p =
+    let as = cveAffects x
+    in any (`isAffected` p) as
+
+instance FromJSON (Cve VendorData) where
   parseJSON (Object o) = do
     let cve = o .: "cve"
     dd <- cve >>= (.: "description") >>= (.: "description_data")
@@ -95,19 +110,51 @@ instance FromJSON NvdCve where
       case Vec.head dd of
         Object o' -> o' .: "value"
         _ -> fail "description_data must be an object"
-    NvdCve <$> (cve >>= (.: "CVE_data_meta") >>= (.: "ID")) <*>
+    Cve <$> (cve >>= (.: "CVE_data_meta") >>= (.: "ID")) <*>
       (cve >>= (.: "affects") >>= (.: "vendor") >>= (.: "vendor_data")) <*>
       pure desc
   parseJSON _ = mzero
 
-instance ToJSON NvdCve where
-  toJSON = genericToJSON $ aesonDrop (length ("NvdCve" :: String)) camelCase
+instance ToJSON (Cve CpeConfiguration) where
+  toJSON = genericToJSON $ aesonDrop (length ("Cve" :: String)) camelCase
+
+instance FromJSON (Cve CpeConfiguration) where
+  parseJSON (Object o) = do
+    let cve = o .: "cve"
+    dd <- cve >>= (.: "description") >>= (.: "description_data")
+    desc <-
+      case Vec.head dd of
+        Object o' -> o' .: "value"
+        _ -> fail "description_data must be an object"
+    confs <- (o .: "configurations") >>= (.: "nodes")
+    Cve <$> (cve >>= (.: "CVE_data_meta") >>= (.: "ID")) <*>
+      pure confs <*>
+      pure desc
+  parseJSON _ = mzero
 
 -- | Name and list of vendor's products.
 data VendorData = VendorData
   { vendorName :: Text -- ^ The name of the vendor.
   , vendorProduct :: [VendorProduct] -- ^ List of vendor's products.
   } deriving (Eq, Generic, Ord, Show)
+
+instance Affects VendorData where
+  packages = map vendorProductName . vendorProduct
+  isAffected x p =
+    let products = vendorProduct x
+        items =
+          concatMap
+            (\y -> zip (repeat . vendorProductName $ y) (vendorProductVersion y))
+            products
+    in p `elem` items
+
+cveProducts :: Cve VendorData -> [(PackageName, PackageVersion)]
+cveProducts cve =
+  let affected = cveAffects cve
+      products = concatMap vendorProduct affected
+  in concatMap
+       (\p -> zip (repeat . vendorProductName $ p) (vendorProductVersion p))
+       products
 
 instance FromJSON VendorData where
   parseJSON (Object o) =
@@ -140,45 +187,33 @@ instance ToJSON VendorProduct where
   toJSON =
     genericToJSON $ aesonDrop (length ("VendorProduct" :: String)) camelCase
 
--- | Simplified representation of CVE data type retrieved from the JSON feed to
--- be used in the application.
-data Cve = Cve
-  { cveId :: CveId -- ^ The ID of the CVE such as CVE-2016-5253.
-  , cveAffects :: [(PackageName, PackageVersion)] -- ^ List of affected products.
-  , cveDescription :: Text -- ^ Description of the CVE.
-  } deriving (Eq, Generic, Ord, Show)
-
-nvdCveToCve :: NvdCve -> Cve
-nvdCveToCve cve =
-  let packages = nvdCveProducts cve
-  in Cve (nvdCveId cve) packages (nvdCveDescription cve)
-
-instance ToJSON Cve where
-  toJSON = genericToJSON $ aesonDrop (length ("Cve" :: String)) camelCase
-
--- | Utility function for parsing CVE information out of NVD JSON feed.
-parseCves ::
-     (MonadError NvsError m, MonadIO m)
-  => FilePath -- ^ Path to the NVD JSON feed file
-  -> m (HashMap (PackageName, PackageVersion) (Set Cve))
-parseCves path = do
+preParse :: (MonadIO m, MonadError NvsError m, FromJSON a) => FilePath -> m a
+preParse path = do
   s <- liftIO . Bytes.readFile $ path
   let parser = withObject "cves" $ \o -> o .: "CVE_Items" >>= parseJSON
   let mRet = join (parseEither parser <$> eitherDecodeStrict s)
-  either
-    (throwError . FileParseError path . toS)
-    (return . cvesByPackage . Vec.map nvdCveToCve)
-    mRet
+  either (throwError . FileParseError path . toS) return mRet
 
-cvesByPackage :: Vector Cve -> HashMap (PackageName, PackageVersion) (Set Cve)
-cvesByPackage = Vec.foldl' go HashMap.empty
+-- | Utility function for parsing CVE information out of NVD JSON feed.
+parseCves ::
+     (Affects a, FromJSON (Cve a), Ord a, MonadError NvsError m, MonadIO m)
+  => FilePath -- ^ Path to the NVD JSON feed file
+  -> m (HashMap PackageName (Set (Cve a)))
+parseCves path = do
+  pkgs <- preParse path
+  return . cvesByPackage $ pkgs
+
+cvesByPackage ::
+     (Ord a, Affects a) => Vector (Cve a) -> HashMap PackageName (Set (Cve a))
+cvesByPackage = foldl' go HashMap.empty
   where
     go ::
-         HashMap (PackageName, PackageVersion) (Set Cve)
-      -> Cve
-      -> HashMap (PackageName, PackageVersion) (Set Cve)
+         (Ord a, Affects a)
+      => HashMap PackageName (Set (Cve a))
+      -> Cve a
+      -> HashMap PackageName (Set (Cve a))
     go acc cve =
-      let products = cveAffects cve
+      let pkgs = concatMap packages cve
           go' acc' x =
             let current = HashMap.lookup x acc'
                 updated =
@@ -186,31 +221,38 @@ cvesByPackage = Vec.foldl' go HashMap.empty
                     Nothing -> Set.singleton cve
                     Just cves -> Set.insert cve cves
             in HashMap.insert x updated acc'
-      in HashMap.unionWith Set.union (foldl' go' HashMap.empty products) acc
-
--- | Given a NvdCve return a list of tuples representing products' names and
--- versions. For example given a Cve an entry in the list may look as follows:
---
--- > ("ffmpeg", "2.8.11")
-nvdCveProducts :: NvdCve -> [(PackageName, PackageVersion)]
-nvdCveProducts cve =
-  let affected = nvdCveAffects cve
-      products = concatMap vendorProduct affected
-  in concatMap
-       (\p -> zip (repeat . vendorProductName $ p) (vendorProductVersion p))
-       products
+      in HashMap.unionWith Set.union (foldl' go' HashMap.empty pkgs) acc
 
 cvesForPackage ::
-     Package
+     (Affects (Cve a), Ord a)
+  => Package
   -> HashMap PackageName PackageAlias
-  -> HashMap (PackageName, PackageVersion) (Set Cve)
-  -> (Package, Set Cve)
+  -> HashMap PackageName (Set (Cve a))
+  -> (Package, Set (Cve a))
 cvesForPackage pkg aliases cves =
   let pVersion = packageVersion pkg
       pName = packageName pkg
       pAliases =
         fromMaybe [] (packageAliasAliases <$> HashMap.lookup pName aliases)
-      terms = [(alias, pVersion) | alias <- pAliases] ++ [(pName, pVersion)]
-      queries = [HashMap.lookup term cves | term <- terms]
-      matches = foldr Set.union Set.empty $ catMaybes queries
+      terms = pName : pAliases
+      queries =
+        foldr Set.union Set.empty . catMaybes $
+        [HashMap.lookup term cves | term <- terms]
+      candidates = zip terms (repeat pVersion)
+      fns = map (flip isAffected) candidates
+      matches =
+        Set.filter
+          (\cve ->
+             let ret = map (\fn -> fn cve) fns
+             in getAny . foldMap Any $ ret)
+          queries
   in (pkg, matches)
+
+vulnsFor ::
+     (Affects (Cve a), Ord a)
+  => HashMap k Package
+  -> HashMap PackageName PackageAlias
+  -> HashMap PackageName (Set (Cve a))
+  -> [(Package, Set (Cve a))]
+vulnsFor pkgs aliases cves =
+  HashMap.foldl' (\acc pkg -> cvesForPackage pkg aliases cves : acc) [] pkgs

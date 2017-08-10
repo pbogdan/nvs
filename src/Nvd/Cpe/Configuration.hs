@@ -21,6 +21,7 @@ import           GHC.TypeLits
 import           Nixpkgs.Packages.Types
 import           Nvd.Cpe
 import           Nvd.Cpe.Uri hiding (Any)
+import           Nvd.Cve.Types
 
 data Op
   = And
@@ -99,6 +100,10 @@ cpeTermsPackages = catMaybes . foldr go []
 
 type CpeConfiguration = Configuration (Terms (Payload Cpe "cpe"))
 
+instance Affects CpeConfiguration where
+  packages = foldMap cpeTermsPackages
+  isAffected = flip cpeConfigurationMatch
+
 cpeConfigurationPackages :: CpeConfiguration -> [PackageName]
 cpeConfigurationPackages = foldr ((++) . cpeTermsPackages) []
 
@@ -127,12 +132,18 @@ queryCpeConfiguration ::
 queryCpeConfiguration x f =
   collapse . runCpeQueries x (\b (Payload cpe) -> f b cpe)
 
-cpeConfigurationMatch :: (PackageName, PackageVersion) -> CpeConfiguration -> Bool
-cpeConfigurationMatch pkg = queryCpeConfiguration pkg go
+cpeConfigurationMatch ::
+     (PackageName, PackageVersion) -> CpeConfiguration -> Bool
+cpeConfigurationMatch pkg cfg =
+  let fn =
+        if ln == 1
+          then cpeMatchExact
+          else cpeMatchExact
+      ln = foldr (\terms acc -> length terms + acc) 0 cfg
+  in queryCpeConfiguration pkg (go fn) cfg
   where
-    go :: (PackageName, PackageVersion) -> Cpe -> Bool
-    go pkg' cpe =
-      case cpeMatch pkg' cpe of
+    go fn pkg' cpe =
+      case fn pkg' cpe of
         Just True -> True
         Just False -> False
         Nothing -> False

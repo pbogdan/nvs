@@ -31,6 +31,7 @@ data Options =
   Options Text
           Text
           RenderMode
+          MatchMode
           Text
           Bool
   deriving (Eq, Show)
@@ -47,6 +48,7 @@ parseOptions =
    strOption
      (long "nixpkgs" <> metavar "nixpkgs" <> help "Path to nixpkgs checkout")) <*>
   flag HTML Markdown (long "markdown" <> help "render markdown instead of HTML") <*>
+  flag MatchSimple MatchCpe (long "cpe" <> help "use CPE matching mode") <*>
   (toS <$>
    argument str (metavar "file" <> help "Output path for the generated report")) <*>
   switch (long "verbose" <> help "Verbose output")

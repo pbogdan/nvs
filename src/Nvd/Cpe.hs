@@ -24,11 +24,15 @@ instance ToJSON Cpe where
 (<&&>) :: Maybe Bool -> Maybe Bool -> Maybe Bool
 (<&&>) = liftA2 (&&)
 
+cpeMatchExact :: (PackageName, PackageVersion) -> Cpe -> Maybe Bool
+cpeMatchExact x cpe =
+  cpeUriMatch x (cpeCpeUri cpe) <&&> Just (cpeVulnerable cpe)
+
 cpeMatch :: (PackageName, PackageVersion) -> Cpe -> Maybe Bool
 cpeMatch x@(pName, pVersion) cpe =
   case cpePreviousVersions cpe of
-    Just False -> cpeUriMatch x (cpeCpeUri cpe) <&&> Just (cpeVulnerable cpe)
-    Nothing -> cpeUriMatch x (cpeCpeUri cpe) <&&> Just (cpeVulnerable cpe)
+    Just False -> cpeMatchExact x cpe
+    Nothing -> cpeMatchExact x cpe
     Just True -> do
       pVersionParsed <- mkParsedPackageVersion pVersion
       uriVersion <- cpeUriPackageVersion . cpeCpeUri $ cpe

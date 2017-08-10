@@ -24,6 +24,7 @@ library
         Nvs.Report
         Nvs.Types
         Nvd.Cve
+        Nvd.Cve.Types
         Nvd.Cpe
         Nvd.Cpe.Configuration
         Nvd.Cpe.Uri
