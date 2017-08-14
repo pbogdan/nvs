@@ -121,7 +121,7 @@ instance Arbitrary Package where
 spec :: Spec
 spec = do
   describe "Given CVE affecting multiple packages" $ do
-    modifyMaxSize (const 200) $ do
+    modifyMaxSize (const 100) $ do
       it "all of them are reported" $
         property $ \(CveMultiple cve) ->
           let packages = cveProducts cve
@@ -138,7 +138,7 @@ spec = do
                   packages
           in length packages `shouldBe` length ret
   describe "Given multiple CVEs affecting single product" $ do
-    modifyMaxSize (const 200) $ do
+    modifyMaxSize (const 100) $ do
       it "all of them are reported" $
         property $ \(cves :: NonEmpty CveConstProducts) ->
           let byPackage =
@@ -152,7 +152,7 @@ spec = do
                   byPackage
           in (length . NE.nub $ cves) `shouldBe` (Set.size . snd $ forPackage)
   describe "Given non-empty aliases database" $ do
-    modifyMaxSize (const 200) $ do
+    modifyMaxSize (const 100) $ do
       it "they are taken into account" $
         property $ \(cve :: Cve VendorData) -> do
           alias <-
