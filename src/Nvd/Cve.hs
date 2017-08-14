@@ -223,6 +223,7 @@ cvesByPackage = foldl' go HashMap.empty
             in HashMap.insert x updated acc'
       in HashMap.unionWith Set.union (foldl' go' HashMap.empty pkgs) acc
 
+-- @TODO: get rid of trolz and meh :D
 cvesForPackage ::
      (Affects (Cve a), Ord a)
   => Package
@@ -249,10 +250,10 @@ cvesForPackage pkg aliases cves =
   in (pkg, matches)
 
 vulnsFor ::
-     (Affects (Cve a), Ord a)
-  => HashMap k Package
+     (Affects (Cve a), Affects a, Ord a)
+  => PackageSet
   -> HashMap PackageName PackageAlias
   -> HashMap PackageName (Set (Cve a))
   -> [(Package, Set (Cve a))]
 vulnsFor pkgs aliases cves =
-  HashMap.foldl' (\acc pkg -> cvesForPackage pkg aliases cves : acc) [] pkgs
+  foldl' (\acc pkg -> cvesForPackage pkg aliases cves : acc) [] pkgs

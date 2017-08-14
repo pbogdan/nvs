@@ -82,10 +82,13 @@ test-suite nvs-test
         unordered-containers -any,
         containers -any,
         text -any,
-        vector -any
+        vector -any,
+        aeson,
+        aeson-qq
     default-language: Haskell2010
     default-extensions: OverloadedStrings NoImplicitPrelude
     hs-source-dirs: test
     other-modules:
         CveSpec
+        PackagesSpec
     ghc-options: -Wall -threaded -rtsopts -with-rtsopts=-N

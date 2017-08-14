@@ -11,7 +11,9 @@ This module provides simple utilities to work with JSON representation of
 nixpkgs packages.
 -}
 {-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE DeriveFoldable #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleInstances #-}
 
 module Nixpkgs.Packages
   ( Package(..)
@@ -19,6 +21,7 @@ module Nixpkgs.Packages
   , PackageMeta(..)
   , PackageLicense(..)
   , LicenseDetails(..)
+  , PackageSet
   , parsePackages
   ) where
 
@@ -30,6 +33,8 @@ import           Data.Aeson.Types
 import qualified Data.ByteString as Bytes
 import           Data.HashMap.Strict (HashMap)
 import qualified Data.HashMap.Strict as HashMap
+import           Data.Set (Set)
+import qualified Data.Set as Set
 import           Data.String (String)
 import qualified Data.Text as Text
 import qualified Data.Vector as Vec
@@ -43,7 +48,7 @@ data Package = Package
   , packageName :: PackageName -- ^ The name of the package
   , packageVersion :: PackageVersion -- ^ The version of the package
   , packageMeta :: PackageMeta -- ^ The meta data of the package
-  } deriving (Eq, Generic, Show)
+  } deriving (Eq, Generic, Ord, Show)
 
 instance FromJSON Package where
   parseJSON (Object o) =
@@ -66,7 +71,7 @@ data PackageMeta = PackageMeta
                                       -- is defined within nixpkgs
   , packageMetaHomepage :: Maybe [Text] -- ^ package homepage
   , packageMetaLongDescription :: Maybe Text -- ^ long description
-  } deriving (Eq, Generic, Show)
+  } deriving (Eq, Generic, Ord, Show)
 
 instance FromJSON PackageMeta where
   parseJSON (Object o) =
@@ -92,7 +97,7 @@ instance ToJSON PackageMeta where
 data PackageLicense
   = DetailedLicense LicenseDetails
   | BasicLicense Text
-  deriving (Eq, Generic, Show)
+  deriving (Eq, Generic, Ord, Show)
 
 instance ToJSON PackageLicense where
   toJSON =
@@ -112,7 +117,7 @@ data LicenseDetails = LicenseDetails
                                      -- obtained
   , detailedLicenseSpdxId :: Maybe Text -- ^ license id within SPDX license list
                                         -- - https://spdx.org/licenses/
-  } deriving (Eq, Generic, Show)
+  } deriving (Eq, Generic, Ord, Show)
 
 instance FromJSON LicenseDetails where
   parseJSON (Object o) =
@@ -124,6 +129,26 @@ instance ToJSON LicenseDetails where
   toJSON =
     genericToJSON $ aesonDrop (length ("LicenseDetails" :: String)) camelCase
 
+newtype KeyedSet a =
+  KeyedSet (HashMap PackageName (Set a))
+  deriving (Eq, Foldable, Show)
+
+instance Ord a => Monoid (KeyedSet a) where
+  mempty = KeyedSet HashMap.empty
+  (KeyedSet a) `mappend` (KeyedSet b) =
+    KeyedSet (HashMap.unionWith Set.union a b)
+
+type PackageSet = KeyedSet Package
+
+instance FromJSON (KeyedSet Package) where
+  parseJSON (Object o) = do
+    pkgs <- sequenceA (parseJSON <$> (Vec.fromList . HashMap.elems $ o))
+    pure . KeyedSet . foldl' go HashMap.empty $ pkgs
+    where
+      go acc x =
+        HashMap.insertWith Set.union (packageName x) (Set.singleton x) acc
+  parseJSON x = typeMismatch "PackageSet" x
+
 -- | Parse package informataion out of a JSON file. The expected format of the
 -- JSON file is that produced by
 --
@@ -133,19 +158,11 @@ instance ToJSON LicenseDetails where
 parsePackages ::
      (MonadError NvsError m, MonadIO m)
   => FilePath
-  -> m (HashMap PackageName Package)
+  -> m PackageSet
 parsePackages path = do
   s <- liftIO . Bytes.readFile $ path
-  let parser =
-        withObject "Packages" $ \o ->
-          sequenceA (parseJSON <$> (Vec.fromList . HashMap.elems $ o))
-  let mRet = join (parseEither parser <$> eitherDecodeStrict s)
-  case mRet of
-    Left e -> throwError . FileParseError path . toS $ e
-    Right ret -> return . Vec.foldl' go HashMap.empty $ ret
-  where
-    go :: HashMap PackageName Package -> Package -> HashMap PackageName Package
-    go acc x = HashMap.insert (packageName x) x acc
+  let mRet = eitherDecodeStrict s
+  either (throwError . FileParseError path . toS) return mRet
 
 -- | GitHub link to the file containing Nix expression that defined the
 -- package. The information required to build the link may not be present in

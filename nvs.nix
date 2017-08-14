@@ -1,8 +1,9 @@
-{ mkDerivation, aeson, aeson-casing, attoparsec, base, bytestring
-, containers, directory, ede, hashable, hspec, lucid, monad-logger
-, optparse-applicative, protolude, QuickCheck, quickcheck-instances
-, raw-strings-qq, shell-cmd, stdenv, temporary, text, transformers
-, unordered-containers, vector, versions, yaml
+{ mkDerivation, aeson, aeson-casing, aeson-qq, attoparsec, base
+, bytestring, containers, directory, ede, hashable, hspec, lucid
+, monad-logger, optparse-applicative, protolude, QuickCheck
+, quickcheck-instances, raw-strings-qq, shell-cmd, stdenv
+, temporary, text, transformers, unordered-containers, vector
+, versions, yaml
 }:
 mkDerivation {
   pname = "nvs";
@@ -18,8 +19,8 @@ mkDerivation {
   ];
   executableHaskellDepends = [ base protolude ];
   testHaskellDepends = [
-    base containers hspec protolude QuickCheck quickcheck-instances
-    text unordered-containers vector
+    aeson aeson-qq base containers hspec protolude QuickCheck
+    quickcheck-instances text unordered-containers vector
   ];
   homepage = "https://github.com/pbogdan/nvs";
   license = stdenv.lib.licenses.bsd3;
