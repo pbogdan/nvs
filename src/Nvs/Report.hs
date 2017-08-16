@@ -13,6 +13,8 @@ Report rendering utilities.
 
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE TypeApplications #-}
+{-# LANGUAGE UndecidableInstances #-}
 
 module Nvs.Report
   ( RenderMode(..)
@@ -56,13 +58,13 @@ data MatchMode
   | MatchCpe
   deriving (Eq, Show)
 
-data CveWithPackage = CveWithPackage
-  { _cveWithPackageCve :: Cve CpeConfiguration
+data CveWithPackage a = CveWithPackage
+  { _cveWithPackageCve :: Cve a
   , _cveWithPackagePackage :: Package
   , _cveWithPackageMaintainers :: [Maintainer]
   } deriving (Eq, Generic, Show)
 
-instance ToJSON CveWithPackage where
+instance ToJSON (Cve a) => ToJSON (CveWithPackage a) where
   toJSON =
     genericToJSON $ aesonDrop (length ("_CveWithPackage" :: String)) camelCase
 
@@ -87,28 +89,37 @@ report ::
   -> FilePath -- ^ path to maintainers.json file
   -> FilePath -- ^ output path for the generated report
   -> RenderMode -- ^ what type of output to generate
+  -> MatchMode
   -> m ()
-report cvePath pkgsPath mtsPath outPath mode = do
+report cvePath pkgsPath mtsPath outPath mode matchMode = do
   logInfoN "Parsing excludes"
   es <- parseExcludes =<< findFile "data/vuln-excludes.yaml"
   logInfoN "Parsing NVD feed"
-  cves <- dropNvdExcludes es <$> parseCves cvePath
   logInfoN "Parsing packages"
   pkgs <- parsePackages pkgsPath
   logInfoN "Parsing maintainers"
   mts <- parseMaintainers mtsPath
   logInfoN "Parsing aliases"
   aliases <- parseAliases =<< findFile "data/package-aliases.yaml"
-  let vulns = vulnsFor pkgs aliases cves
-      renderer =
-        case mode of
-          HTML -> renderHTML
-          Markdown -> renderMarkdown
-  renderer vulns mts outPath
+  case matchMode of
+    MatchSimple -> do
+      vulns <-
+        (dropNvdExcludes es <$> parseCves cvePath) >>= \cves ->
+          return (vulnsFor @VendorData pkgs aliases cves)
+      case mode of
+        HTML -> renderHTML vulns mts outPath
+        Markdown -> renderMarkdown vulns mts outPath
+    MatchCpe -> do
+      vulns <-
+        (dropNvdExcludes es <$> parseCves cvePath) >>= \cves ->
+          return (vulnsFor @CpeConfiguration pkgs aliases cves)
+      case mode of
+        HTML -> renderHTML vulns mts outPath
+        Markdown -> renderMarkdown vulns mts outPath
 
 renderHTML ::
      MonadIO m
-  => [(Package, Set (Cve CpeConfiguration))]
+  => [(Package, Set (Cve a))]
   -> HashMap Text Maintainer
   -> FilePath
   -> m ()
@@ -190,8 +201,8 @@ renderMaintainer mt mts =
            (toHtml ("@" <> maintainerHandle mt'))
 
 renderMarkdown ::
-     MonadIO m
-  => [(Package, Set (Cve CpeConfiguration))]
+     (ToJSON a, MonadIO m)
+  => [(Package, Set (Cve a))]
   -> HashMap Text Maintainer
   -> FilePath
   -> m ()

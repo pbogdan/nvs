@@ -37,7 +37,7 @@ defaultMain =
   execParser (parseOptions `withInfo` "Experimental CVE scanner for nixpkgs")
 
 run :: Options -> IO ()
-run (Options nvdFeed nixpkgs mode _ out verbose) =
+run (Options nvdFeed nixpkgs mode matching out verbose) =
   runStderrLoggingT $
   filterLogger (\_ lvl -> verbose || (lvl >= LevelWarn)) $
   withSystemTempDirectory "nvs" $ \tmpDir -> do
@@ -56,6 +56,7 @@ run (Options nvdFeed nixpkgs mode _ out verbose) =
           (toS tmpDir <> "/maintainers.json")
           (toS out)
           mode
+          matching
     case ret of
       Left (ShellCommandError _ msg) -> do
         logErrorN $ "Shell command failed: " <> show msg

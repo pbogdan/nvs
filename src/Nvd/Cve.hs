@@ -115,7 +115,7 @@ instance FromJSON (Cve VendorData) where
       pure desc
   parseJSON _ = mzero
 
-instance ToJSON (Cve CpeConfiguration) where
+instance ToJSON a => ToJSON (Cve a) where
   toJSON = genericToJSON $ aesonDrop (length ("Cve" :: String)) camelCase
 
 instance FromJSON (Cve CpeConfiguration) where
