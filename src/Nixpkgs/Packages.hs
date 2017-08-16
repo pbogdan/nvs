@@ -47,13 +47,14 @@ data Package = Package
                           -- extracted
   , packageName :: PackageName -- ^ The name of the package
   , packageVersion :: PackageVersion -- ^ The version of the package
+  , packageAttrPath :: Text
   , packageMeta :: PackageMeta -- ^ The meta data of the package
   } deriving (Eq, Generic, Ord, Show)
 
 instance FromJSON Package where
   parseJSON (Object o) =
     Package <$> o .: "system" <*> (parsePackageName <$> o .: "name") <*>
-    (parsePackageVersion <$> o .: "name") <*>
+    (parsePackageVersion <$> o .: "name") <*> o .: "attrPath" <*>
     o .: "meta"
   parseJSON _ = mzero
 
@@ -140,9 +141,19 @@ instance Ord a => Monoid (KeyedSet a) where
 
 type PackageSet = KeyedSet Package
 
+parsePackage :: FromJSON a => Text -> Value -> Parser a
+parsePackage attrPath (Object o) =
+  let o' = HashMap.insert "attrPath" (String attrPath) o
+  in parseJSON (Object o')
+parsePackage _ x = typeMismatch "ParsePackage" x
+
 instance FromJSON (KeyedSet Package) where
-  parseJSON (Object o) = do
-    pkgs <- sequenceA (parseJSON <$> (Vec.fromList . HashMap.elems $ o))
+  parseJSON (Object o)
+    -- pkgs <- sequenceA (parseJSON <$> (Vec.fromList . HashMap.elems $ o))
+   = do
+    pkgs <-
+      sequenceA . Vec.fromList . HashMap.elems $
+      (flip HashMap.mapWithKey o $ \k v -> parsePackage k v)
     pure . KeyedSet . foldl' go HashMap.empty $ pkgs
     where
       go acc x =

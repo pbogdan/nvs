@@ -115,7 +115,9 @@ instance Arbitrary CveMultiple where
 
 instance Arbitrary Package where
   arbitrary =
-    Package <$> pure "x86_64" <*> arbitrary <*> arbitrary <*> pure undefined
+    Package <$> pure "x86_64" <*> arbitrary <*> arbitrary <*>
+    (arbitrary `suchThat` (\x -> Text.length x < 10)) <*>
+    pure undefined
 
 {-# ANN spec ("HLint: ignore Redundant do" :: Text) #-}
 spec :: Spec
@@ -134,7 +136,7 @@ spec = do
               ret =
                 map
                   (\(name, ver) ->
-                     cvesForPackage (Package "" name ver undefined) aliases cves)
+                     cvesForPackage (Package "" name ver "" undefined) aliases cves)
                   packages
           in length packages `shouldBe` length ret
   describe "Given multiple CVEs affecting single product" $ do
@@ -147,7 +149,7 @@ spec = do
                    cves)
               forPackage =
                 cvesForPackage
-                  (Package "" "dummy" "0.0.1" undefined)
+                  (Package "" "dummy" "0.0.1" "" undefined)
                   HashMap.empty
                   byPackage
           in (length . NE.nub $ cves) `shouldBe` (Set.size . snd $ forPackage)
@@ -171,6 +173,6 @@ spec = do
               ret =
                 map
                   (\(name, ver) ->
-                     cvesForPackage (Package "" name ver undefined) aliases cves)
+                     cvesForPackage (Package "" name ver "" undefined) aliases cves)
                   packages
           return (length packages `shouldBe` length ret)
