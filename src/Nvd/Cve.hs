@@ -42,7 +42,7 @@ import           Data.HashMap.Strict (HashMap)
 import qualified Data.HashMap.Strict as HashMap
 import           Data.Set (Set)
 import qualified Data.Set as Set
-import           Data.String (String, IsString(..))
+import           Data.String (String, IsString(..), unwords)
 import qualified Data.Text as Text
 import           Data.Vector (Vector)
 import qualified Data.Vector as Vec
@@ -187,20 +187,32 @@ instance ToJSON VendorProduct where
   toJSON =
     genericToJSON $ aesonDrop (length ("VendorProduct" :: String)) camelCase
 
-preParse :: (MonadIO m, MonadError NvsError m, FromJSON a) => FilePath -> m a
-preParse path = do
-  s <- liftIO . Bytes.readFile $ path
-  let parser = withObject "cves" $ \o -> o .: "CVE_Items" >>= parseJSON
-  let mRet = join (parseEither parser <$> eitherDecodeStrict s)
-  either (throwError . FileParseError path . toS) return mRet
+preParse :: (MonadIO m, MonadError NvsError m, FromJSON a) => [FilePath] -> m a
+preParse paths = do
+  feeds <-
+    traverse eitherDecodeStrict <$> traverse (liftIO . Bytes.readFile) paths
+  case feeds of
+    Left e -> throwError . FileParseError (unwords paths) . toS $ e
+    Right os -> do
+      let items = mapMaybe (HashMap.lookup ("CVE_Items" :: Text)) os
+          merged =
+            foldr
+              (\val acc ->
+                 case val of
+                   Array a -> (Vec.++) a acc
+                   _ -> acc)
+              Vec.empty
+              items
+          ret = parseEither parseJSON (Array merged)
+      either (throwError . FileParseError (unwords paths) . toS) return ret
 
 -- | Utility function for parsing CVE information out of NVD JSON feed.
 parseCves ::
      (Affects a, FromJSON (Cve a), Ord a, MonadError NvsError m, MonadIO m)
-  => FilePath -- ^ Path to the NVD JSON feed file
+  => [FilePath] -- ^ Path to the NVD JSON feed file
   -> m (HashMap PackageName (Set (Cve a)))
-parseCves path = do
-  pkgs <- preParse path
+parseCves paths = do
+  pkgs <- preParse paths
   return . cvesByPackage $ pkgs
 
 cvesByPackage ::
@@ -223,7 +235,6 @@ cvesByPackage = foldl' go HashMap.empty
             in HashMap.insert x updated acc'
       in HashMap.unionWith Set.union (foldl' go' HashMap.empty pkgs) acc
 
--- @TODO: get rid of trolz and meh :D
 cvesForPackage ::
      (Affects (Cve a), Ord a)
   => Package

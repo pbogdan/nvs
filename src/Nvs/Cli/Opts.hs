@@ -28,7 +28,7 @@ import Options.Applicative
 -- - rendering mode which specifies output format
 -- - output path for generated report
 data Options =
-  Options Text
+  Options [Text]
           Text
           RenderMode
           MatchMode
@@ -40,10 +40,11 @@ data Options =
 parseOptions :: Parser Options
 parseOptions =
   Options <$>
-  (toS <$>
-   strOption
-     (long "nvd-feed" <> metavar "nvd-feed" <>
-      help "Path to a copy of the NVD JSON feed")) <*>
+  some
+    (toS <$>
+     strOption
+       (long "nvd-feed" <> metavar "nvd-feed" <>
+        help "Path to a copy of the NVD JSON feed")) <*>
   (toS <$>
    strOption
      (long "nixpkgs" <> metavar "nixpkgs" <> help "Path to nixpkgs checkout")) <*>

@@ -37,7 +37,7 @@ defaultMain =
   execParser (parseOptions `withInfo` "Experimental CVE scanner for nixpkgs")
 
 run :: Options -> IO ()
-run (Options nvdFeed nixpkgs mode matching out verbose) =
+run (Options nvdFeeds nixpkgs mode matching out verbose) =
   runStderrLoggingT $
   filterLogger (\_ lvl -> verbose || (lvl >= LevelWarn)) $
   withSystemTempDirectory "nvs" $ \tmpDir -> do
@@ -51,7 +51,7 @@ run (Options nvdFeed nixpkgs mode matching out verbose) =
           (throwE . flip ShellCommandError "Preparing packages.json failed")
         logInfoN "Generating report"
         report
-          (toS nvdFeed)
+          (map toS nvdFeeds)
           (toS tmpDir <> "/packages.json")
           (toS tmpDir <> "/maintainers.json")
           (toS out)

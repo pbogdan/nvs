@@ -82,14 +82,14 @@ dropNvdExcludes es =
 -- refer to "Nvs.Cli" module.
 report ::
      (MonadError NvsError m, MonadLogger m, MonadIO m)
-  => FilePath -- ^ path to NVD JSON feed
+  => [FilePath] -- ^ path to NVD JSON feed
   -> FilePath -- ^ path to packages.json file
   -> FilePath -- ^ path to maintainers.json file
   -> FilePath -- ^ output path for the generated report
   -> RenderMode -- ^ what type of output to generate
   -> MatchMode
   -> m ()
-report cvePath pkgsPath mtsPath outPath mode matchMode = do
+report cvePaths pkgsPath mtsPath outPath mode matchMode = do
   logInfoN "Parsing excludes"
   es <- parseExcludes =<< findFile "data/vuln-excludes.yaml"
   logInfoN "Parsing NVD feed"
@@ -102,14 +102,14 @@ report cvePath pkgsPath mtsPath outPath mode matchMode = do
   case matchMode of
     MatchSimple -> do
       vulns <-
-        (dropNvdExcludes es <$> parseCves cvePath) >>= \cves ->
+        (dropNvdExcludes es <$> parseCves cvePaths) >>= \cves ->
           return (vulnsFor @VendorData pkgs aliases cves)
       case mode of
         HTML -> renderHTML vulns mts outPath
         Markdown -> renderMarkdown vulns mts outPath
     MatchCpe -> do
       vulns <-
-        (dropNvdExcludes es <$> parseCves cvePath) >>= \cves ->
+        (dropNvdExcludes es <$> parseCves cvePaths) >>= \cves ->
           return (vulnsFor @CpeConfiguration pkgs aliases cves)
       case mode of
         HTML -> renderHTML vulns mts outPath
