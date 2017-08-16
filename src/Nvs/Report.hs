@@ -75,8 +75,6 @@ dropNvdExcludes es =
   in HashMap.filter (not . Set.null) .
      HashMap.map (Set.filter ((`Set.notMember` toDrop) . cveId))
 
--- @TODO: semantics of "-" in package / product version are unclear..
-
 -- | Produce a human readable report about CVEs that may be present in the given
 -- package set.
 --
