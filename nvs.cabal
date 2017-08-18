@@ -30,12 +30,12 @@ library
         Nvd.Cpe.Uri
     build-depends:
         base >=4.9 && <4.10,
-        aeson >=1.0.2 && <1.1,
+        aeson >=1.0,
         attoparsec >=0.13.1 && <0.14,
         bytestring >=0.10.8 && <0.11,
         containers >=0.5.7 && <0.6,
         text >=1.2.2 && <1.3,
-        vector >=0.11.0 && <0.12,
+        vector >=0.11,
         unordered-containers >=0.2.8 && <0.3,
         lucid >=2.9.8 && <2.10,
         protolude >=0.1.10 && <0.2,

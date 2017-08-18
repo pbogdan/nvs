@@ -1,0 +1,5 @@
+language: nix
+sudo: true
+script:
+- nix-build -I nixpkgs=https://nixos.org/channels/nixos-17.03/nixexprs.tar.xz
+- nix-build -I nixpkgs=https://nixos.org/channels/nixos-unstable/nixexprs.tar.xz
