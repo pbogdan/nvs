@@ -23,7 +23,6 @@ import           Nvd.Cpe
 import           Nvd.Cpe.Configuration
 import           Nvd.Cpe.Uri
 import           Nvd.Cve
-import           Nvd.Cve.Types
 import           Test.Hspec
 import           Test.Hspec.QuickCheck (modifyMaxSize)
 import           Test.QuickCheck
@@ -126,19 +125,22 @@ spec = do
     modifyMaxSize (const 100) $ do
       it "all of them are reported" $
         property $ \(CveMultiple cve) ->
-          let packages = cveProducts cve
+          let pkgs = cveProducts cve
               aliases = HashMap.empty
               cves =
                 foldl'
                   (\acc (name, _) -> HashMap.insert name (Set.singleton cve) acc)
                   HashMap.empty
-                  packages
+                  pkgs
               ret =
                 map
                   (\(name, ver) ->
-                     cvesForPackage (Package "" name ver "" undefined) aliases cves)
-                  packages
-          in length packages `shouldBe` length ret
+                     cvesForPackage
+                       (Package "" name ver "" undefined)
+                       aliases
+                       cves)
+                  pkgs
+          in length pkgs `shouldBe` length ret
   describe "Given multiple CVEs affecting single product" $ do
     modifyMaxSize (const 100) $ do
       it "all of them are reported" $
@@ -166,13 +168,15 @@ spec = do
               packages = cveProducts cve
               cves =
                 foldl'
-                  (\acc (_, _) ->
-                     HashMap.insert alias (Set.singleton cve) acc)
+                  (\acc (_, _) -> HashMap.insert alias (Set.singleton cve) acc)
                   HashMap.empty
                   packages
               ret =
                 map
                   (\(name, ver) ->
-                     cvesForPackage (Package "" name ver "" undefined) aliases cves)
+                     cvesForPackage
+                       (Package "" name ver "" undefined)
+                       aliases
+                       cves)
                   packages
           return (length packages `shouldBe` length ret)
