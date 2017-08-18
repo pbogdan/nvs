@@ -13,9 +13,12 @@ Report rendering utilities.
 
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE TypeApplications #-}
+{-# LANGUAGE UndecidableInstances #-}
 
 module Nvs.Report
-  ( RenderMode(..)
+  ( Output(..)
+  , Matching(..)
   , report
   ) where
 
@@ -37,38 +40,40 @@ import           Nixpkgs.Maintainers
 import           Nixpkgs.Packages
 import           Nixpkgs.Packages.Aliases
 import           Nixpkgs.Packages.Types
+import           Nvd.Cpe.Configuration
+import           Nvd.Cve
 import           Nvs.Excludes
 import           Nvs.Files
 import           Nvs.Types
-import           Nvd.Cve
 import           Text.EDE
 
 -- | Specifies rendering mode, or more precisely the output format.
-data RenderMode
+data Output
   = HTML
   | Markdown
   deriving (Eq, Show)
 
-data CveWithPackage = CveWithPackage
-  { _cveWithPackageCve :: Cve
+data Matching
+  = Simple
+  | Cpe
+  deriving (Eq, Show)
+
+data CveWithPackage a = CveWithPackage
+  { _cveWithPackageCve :: Cve a
   , _cveWithPackagePackage :: Package
   , _cveWithPackageMaintainers :: [Maintainer]
   } deriving (Eq, Generic, Show)
 
-instance ToJSON CveWithPackage where
+instance ToJSON (Cve a) => ToJSON (CveWithPackage a) where
   toJSON =
     genericToJSON $ aesonDrop (length ("_CveWithPackage" :: String)) camelCase
 
 dropNvdExcludes ::
-     Excludes
-  -> HashMap (PackageName, PackageVersion) (Set Cve)
-  -> HashMap (PackageName, PackageVersion) (Set Cve)
+     Excludes -> HashMap k (Set (Cve a)) -> HashMap k (Set (Cve a))
 dropNvdExcludes es =
   let toDrop = Set.fromList . nvdExcludes $ es
   in HashMap.filter (not . Set.null) .
      HashMap.map (Set.filter ((`Set.notMember` toDrop) . cveId))
-
--- @TODO: semantics of "-" in package / product version are unclear..
 
 -- | Produce a human readable report about CVEs that may be present in the given
 -- package set.
@@ -77,37 +82,42 @@ dropNvdExcludes es =
 -- refer to "Nvs.Cli" module.
 report ::
      (MonadError NvsError m, MonadLogger m, MonadIO m)
-  => FilePath -- ^ path to NVD JSON feed
+  => [FilePath] -- ^ path to NVD JSON feed
   -> FilePath -- ^ path to packages.json file
   -> FilePath -- ^ path to maintainers.json file
   -> FilePath -- ^ output path for the generated report
-  -> RenderMode -- ^ what type of output to generate
+  -> Output -- ^ what type of output to generate
+  -> Matching
   -> m ()
-report cvePath pkgsPath mtsPath outPath mode = do
+report cvePaths pkgsPath mtsPath outPath mode matchMode = do
   logInfoN "Parsing excludes"
   es <- parseExcludes =<< findFile "data/vuln-excludes.yaml"
   logInfoN "Parsing NVD feed"
-  cves <- dropNvdExcludes es <$> parseCves cvePath
   logInfoN "Parsing packages"
   pkgs <- parsePackages pkgsPath
   logInfoN "Parsing maintainers"
   mts <- parseMaintainers mtsPath
   logInfoN "Parsing aliases"
   aliases <- parseAliases =<< findFile "data/package-aliases.yaml"
-  let vulns =
-        HashMap.foldl'
-          (\acc pkg -> cvesForPackage pkg aliases cves : acc)
-          []
-          pkgs
-      renderer =
-        case mode of
-          HTML -> renderHTML
-          Markdown -> renderMarkdown
-  renderer vulns mts outPath
+  case matchMode of
+    Simple -> do
+      vulns <-
+        (dropNvdExcludes es <$> parseCves cvePaths) >>= \cves ->
+          return (vulnsFor @VendorData pkgs aliases cves)
+      case mode of
+        HTML -> renderHTML vulns mts outPath
+        Markdown -> renderMarkdown vulns mts outPath
+    Cpe -> do
+      vulns <-
+        (dropNvdExcludes es <$> parseCves cvePaths) >>= \cves ->
+          return (vulnsFor @CpeConfiguration pkgs aliases cves)
+      case mode of
+        HTML -> renderHTML vulns mts outPath
+        Markdown -> renderMarkdown vulns mts outPath
 
 renderHTML ::
      MonadIO m
-  => [(Package, Set Cve)]
+  => [(Package, Set (Cve a))]
   -> HashMap Text Maintainer
   -> FilePath
   -> m ()
@@ -189,8 +199,8 @@ renderMaintainer mt mts =
            (toHtml ("@" <> maintainerHandle mt'))
 
 renderMarkdown ::
-     MonadIO m
-  => [(Package, Set Cve)]
+     (ToJSON a, MonadIO m)
+  => [(Package, Set (Cve a))]
   -> HashMap Text Maintainer
   -> FilePath
   -> m ()
