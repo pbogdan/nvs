@@ -72,3 +72,9 @@ If for any reason you want to exclude a particular vulnerability for being consi
 ## Known issues
 
 - there might be mismatches in product names and package names in packages. For example nixpkgs `vlc` package is present in NVD as `vlc_media_player`. I don't see a way of handling this automatically. Currently this is handled via manually curated package alias database.
+
+## Related projects
+
+- [nixpkgs-monitor](https://github.com/Phreedom/nixpkgs-monitor)
+- [vulnix](https://github.com/flyingcircusio/vulnix)
+
