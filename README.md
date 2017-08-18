@@ -34,8 +34,8 @@ nvs requires:
 Available command line options:
 
 ```
-$ nvs --help
-Usage: nvs --nvd-feed nvd-feed --nixpkgs nixpkgs [--markdown] file
+Usage: nvs --nvd-feed nvd-feed --nixpkgs nixpkgs [--markdown] [--cpe] file
+           [--verbose]
   Experimental CVE scanner for nixpkgs
 
 Available options:
@@ -43,7 +43,9 @@ Available options:
   --nvd-feed nvd-feed      Path to a copy of the NVD JSON feed
   --nixpkgs nixpkgs        Path to nixpkgs checkout
   --markdown               render markdown instead of HTML
+  --cpe                    use CPE matching mode
   file                     Output path for the generated report
+  --verbose                Verbose output
 ```
 
 Example invocation:
