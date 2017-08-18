@@ -40,12 +40,13 @@ Usage: nvs --nvd-feed nvd-feed --nixpkgs nixpkgs [--markdown] [--cpe] file
 
 Available options:
   -h,--help                Show this help text
-  --nvd-feed nvd-feed      Path to a copy of the NVD JSON feed
-  --nixpkgs nixpkgs        Path to nixpkgs checkout
-  --markdown               render markdown instead of HTML
-  --cpe                    use CPE matching mode
-  file                     Output path for the generated report
-  --verbose                Verbose output
+  --nvd-feed nvd-feed      Path to a copy of the NVD JSON feed. May be specified
+                           multiple times.
+  --nixpkgs nixpkgs        Path to nixpkgs checkout.
+  --markdown               render markdown instead of HTML.
+  --cpe                    use CPE matching mode.
+  file                     Output path for the generated report.
+  --verbose                Verbose output.
 ```
 
 Example invocation:

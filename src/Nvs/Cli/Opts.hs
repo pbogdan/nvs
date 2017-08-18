@@ -22,7 +22,7 @@ import Protolude
 import Nvs.Report
 import Options.Applicative
 
--- | Command line options for the CLI. 
+-- | Command line options for the CLI.
 data Opts = Opts
   { optsNvdFeeds :: [Text]
   , optsNixpkgs :: Text
@@ -40,15 +40,19 @@ parseOptions =
     (toS <$>
      strOption
        (long "nvd-feed" <> metavar "nvd-feed" <>
-        help "Path to a copy of the NVD JSON feed")) <*>
+        help
+          "Path to a copy of the NVD JSON feed. May be specified multiple times.")) <*>
   (toS <$>
    strOption
-     (long "nixpkgs" <> metavar "nixpkgs" <> help "Path to nixpkgs checkout")) <*>
-  flag HTML Markdown (long "markdown" <> help "render markdown instead of HTML") <*>
-  flag Simple Cpe (long "cpe" <> help "use CPE matching mode") <*>
+     (long "nixpkgs" <> metavar "nixpkgs" <> help "Path to nixpkgs checkout.")) <*>
+  flag
+    HTML
+    Markdown
+    (long "markdown" <> help "render markdown instead of HTML.") <*>
+  flag Simple Cpe (long "cpe" <> help "use CPE matching mode.") <*>
   (toS <$>
-   argument str (metavar "file" <> help "Output path for the generated report")) <*>
-  switch (long "verbose" <> help "Verbose output")
+   argument str (metavar "file" <> help "Output path for the generated report.")) <*>
+  switch (long "verbose" <> help "Verbose output.")
 
 -- | Convenience function to add @--help@ support given a parser and
 -- description.
