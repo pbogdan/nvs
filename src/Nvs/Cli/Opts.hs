@@ -12,7 +12,7 @@ Command line arguments parser for nvs command line interface.
 -}
 
 module Nvs.Cli.Opts
-  ( Options(..)
+  ( Opts(..)
   , parseOptions
   , withInfo
   ) where
@@ -22,24 +22,20 @@ import Protolude
 import Nvs.Report
 import Options.Applicative
 
--- | Command line options for the CLI. The fields represent:
--- - path to NVD JSON feed file
--- - path to nixpkgs checkout
--- - rendering mode which specifies output format
--- - output path for generated report
-data Options =
-  Options [Text]
-          Text
-          Output
-          Matching
-          Text
-          Bool
-  deriving (Eq, Show)
+-- | Command line options for the CLI. 
+data Opts = Opts
+  { optsNvdFeeds :: [Text]
+  , optsNixpkgs :: Text
+  , optsOutput :: Output
+  , optsMatching :: Matching
+  , optsOutPath :: Text
+  , optsVerbose :: Bool
+  } deriving (Eq, Show)
 
 -- | Parser for the command line options.
-parseOptions :: Parser Options
+parseOptions :: Parser Opts
 parseOptions =
-  Options <$>
+  Opts <$>
   some
     (toS <$>
      strOption

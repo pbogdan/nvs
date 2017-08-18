@@ -36,27 +36,27 @@ defaultMain =
   run =<<
   execParser (parseOptions `withInfo` "Experimental CVE scanner for nixpkgs")
 
-run :: Options -> IO ()
-run (Options nvdFeeds nixpkgs mode matching out verbose) =
+run :: Opts -> IO ()
+run opts =
   runStderrLoggingT $
-  filterLogger (\_ lvl -> verbose || (lvl >= LevelWarn)) $
+  filterLogger (\_ lvl -> optsVerbose opts || (lvl >= LevelWarn)) $
   withSystemTempDirectory "nvs" $ \tmpDir -> do
     ret <-
       runExceptT $ do
         logInfoN "Generating maintainers.json"
-        generateMaintainers nixpkgs tmpDir `catchE`
+        generateMaintainers (optsNixpkgs opts) tmpDir `catchE`
           (throwE . flip ShellCommandError "Preparing maintainers.json failed")
         logInfoN "Generating packages.json"
-        generatePackages nixpkgs tmpDir `catchE`
+        generatePackages (optsNixpkgs opts) tmpDir `catchE`
           (throwE . flip ShellCommandError "Preparing packages.json failed")
         logInfoN "Generating report"
         report
-          (map toS nvdFeeds)
+          (map toS (optsNvdFeeds opts))
           (toS tmpDir <> "/packages.json")
           (toS tmpDir <> "/maintainers.json")
-          (toS out)
-          mode
-          matching
+          (toS (optsOutPath opts))
+          (optsOutput opts)
+          (optsMatching opts)
     case ret of
       Left (ShellCommandError _ msg) -> do
         logErrorN $ "Shell command failed: " <> show msg
