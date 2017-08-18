@@ -9,7 +9,14 @@
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE TypeFamilies #-}
 
-module Nvd.Cpe.Configuration where
+module Nvd.Cpe.Configuration
+  ( Op(..)
+  , Terms(..)
+  , Payload(..)
+  , PayloadKey
+  , Configuration(..)
+  , CpeConfiguration
+  ) where
 
 import           Protolude
 
@@ -103,9 +110,6 @@ type CpeConfiguration = Configuration (Terms (Payload Cpe "cpe"))
 instance Affects CpeConfiguration where
   packages = foldMap cpeTermsPackages
   isAffected = flip cpeConfigurationMatch
-
-cpeConfigurationPackages :: CpeConfiguration -> [PackageName]
-cpeConfigurationPackages = foldr ((++) . cpeTermsPackages) []
 
 runCpeQueries ::
      b

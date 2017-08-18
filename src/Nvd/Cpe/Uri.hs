@@ -4,7 +4,14 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeFamilies #-}
 
-module Nvd.Cpe.Uri where
+module Nvd.Cpe.Uri
+  ( CpePart(..)
+  , CpeValue(..)
+  , CpeUri(..)
+  , cpeUriMatch
+  , cpeUriPackageName
+  , cpeUriPackageVersion
+  ) where
 
 import           Protolude hiding (Any, Product)
 

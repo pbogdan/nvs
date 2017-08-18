@@ -1,4 +1,8 @@
-module Nvd.Cpe where
+module Nvd.Cpe
+  ( Cpe(..)
+  , cpeMatch
+  , cpeMatchExact
+  ) where
 
 import Protolude
 
