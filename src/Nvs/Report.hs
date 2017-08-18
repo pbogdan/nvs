@@ -17,8 +17,8 @@ Report rendering utilities.
 {-# LANGUAGE UndecidableInstances #-}
 
 module Nvs.Report
-  ( RenderMode(..)
-  , MatchMode(..)
+  ( Output(..)
+  , Matching(..)
   , report
   ) where
 
@@ -48,14 +48,14 @@ import           Nvs.Types
 import           Text.EDE
 
 -- | Specifies rendering mode, or more precisely the output format.
-data RenderMode
+data Output
   = HTML
   | Markdown
   deriving (Eq, Show)
 
-data MatchMode
-  = MatchSimple
-  | MatchCpe
+data Matching
+  = Simple
+  | Cpe
   deriving (Eq, Show)
 
 data CveWithPackage a = CveWithPackage
@@ -86,8 +86,8 @@ report ::
   -> FilePath -- ^ path to packages.json file
   -> FilePath -- ^ path to maintainers.json file
   -> FilePath -- ^ output path for the generated report
-  -> RenderMode -- ^ what type of output to generate
-  -> MatchMode
+  -> Output -- ^ what type of output to generate
+  -> Matching
   -> m ()
 report cvePaths pkgsPath mtsPath outPath mode matchMode = do
   logInfoN "Parsing excludes"
@@ -100,14 +100,14 @@ report cvePaths pkgsPath mtsPath outPath mode matchMode = do
   logInfoN "Parsing aliases"
   aliases <- parseAliases =<< findFile "data/package-aliases.yaml"
   case matchMode of
-    MatchSimple -> do
+    Simple -> do
       vulns <-
         (dropNvdExcludes es <$> parseCves cvePaths) >>= \cves ->
           return (vulnsFor @VendorData pkgs aliases cves)
       case mode of
         HTML -> renderHTML vulns mts outPath
         Markdown -> renderMarkdown vulns mts outPath
-    MatchCpe -> do
+    Cpe -> do
       vulns <-
         (dropNvdExcludes es <$> parseCves cvePaths) >>= \cves ->
           return (vulnsFor @CpeConfiguration pkgs aliases cves)
