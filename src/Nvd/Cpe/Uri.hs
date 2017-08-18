@@ -37,7 +37,7 @@ instance Monoid b => Monoid (CpeValue a b) where
   a@(CpeValue _) `mappend` NA = a
   a@(CpeValue _) `mappend` Any = a
 
-instance Functor ( CpeValue a) where
+instance Functor (CpeValue a) where
   fmap _ Any = Any
   fmap _ NA = NA
   fmap f (CpeValue a) = CpeValue (f a)
@@ -62,7 +62,10 @@ data CpeUri = CpeUri
   , cpeTargetSw :: CpeValue (Segment TargetSw 10) Text
   , cpeTargetHw :: CpeValue (Segment TargetHw 11) Text
   , cpeOther :: CpeValue (Segment Other 12) Text
-  } deriving (Eq, Ord, Show)
+  } deriving (Eq, Show)
+
+instance Ord CpeUri where
+  x `compare` y = cpeVersion x `compare` cpeVersion y
 
 instance FromJSON CpeUri where
   parseJSON (String s) = either (fail . toS) pure (parseCpeUri s)
