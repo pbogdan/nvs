@@ -189,9 +189,9 @@ instance ToJSON VendorProduct where
 
 preParse :: (MonadIO m, MonadError NvsError m, FromJSON a) => [FilePath] -> m a
 preParse paths = do
-  feeds <-
-    traverse eitherDecodeStrict <$> traverse (liftIO . Bytes.readFile) paths
-  case feeds of
+  inputs <- traverse (liftIO . Bytes.readFile) paths
+  feeds <- liftIO . forConcurrently inputs $ return . eitherDecodeStrict'
+  case sequenceA feeds of
     Left e -> throwError . FileParseError (unwords paths) . toS $ e
     Right os -> do
       let items = mapMaybe (HashMap.lookup ("CVE_Items" :: Text)) os
