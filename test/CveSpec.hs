@@ -86,8 +86,8 @@ instance Arbitrary VendorData where
 
 instance Arbitrary (Cve VendorData) where
   arbitrary =
-    Cve <$> arbitrary <*> arbitrary <*>
-    (arbitrary `suchThat` (\x -> Text.length x <= 10))
+    Cve <$> arbitrary <*> (arbitrary `suchThat` (\x -> Text.length x <= 10)) <*>
+    arbitrary
 
 newtype CveConstProducts = CveConstProducts
   { unCveConstProducts :: Cve VendorData
@@ -101,7 +101,7 @@ dummyVendorData = VendorData "" [VendorProduct "dummy" ["0.0.1"]]
 
 instance Arbitrary CveConstProducts where
   arbitrary = do
-    cve <- Cve <$> arbitrary <*> pure [dummyVendorData] <*> pure "description"
+    cve <- Cve <$> arbitrary <*> pure "description" <*> pure [dummyVendorData]
     return . CveConstProducts $ cve
 
 newtype CveMultiple = CveMultiple

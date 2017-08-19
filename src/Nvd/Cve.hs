@@ -92,8 +92,8 @@ instance Ord CveId where
 -- discarded.
 data Cve a = Cve
   { cveId :: CveId -- ^ The ID of the CVE such as CVE-2016-5253.
-  , cveAffects :: [a] -- ^ List of affected vendors and products.
   , cveDescription :: Text -- ^ Description of the CVE.
+  , cveAffects :: [a] -- ^ List of affected vendors and products.
   } deriving (Eq, Foldable, Functor, Generic, Ord, Show)
 
 instance Affects a => Affects (Cve a) where
@@ -102,34 +102,30 @@ instance Affects a => Affects (Cve a) where
     let as = cveAffects x
     in any (`isAffected` p) as
 
-instance FromJSON (Cve VendorData) where
-  parseJSON (Object o) = do
-    let cve = o .: "cve"
-    dd <- cve >>= (.: "description") >>= (.: "description_data")
-    desc <-
+parseCveCommon :: Value -> Parser ([a] -> Cve a)
+parseCveCommon (Object o) = do
+  let cve = o .: "cve"
+  dd <- cve >>= (.: "description") >>= (.: "description_data")
+  desc <-
       case Vec.head dd of
         Object o' -> o' .: "value"
         _ -> fail "description_data must be an object"
-    Cve <$> (cve >>= (.: "CVE_data_meta") >>= (.: "ID")) <*>
-      (cve >>= (.: "affects") >>= (.: "vendor") >>= (.: "vendor_data")) <*>
-      pure desc
+  Cve <$> (cve >>= (.: "CVE_data_meta") >>= (.: "ID")) <*> pure desc
+parseCveCommon x = typeMismatch "parseCveCommon" x
+
+instance FromJSON (Cve VendorData) where
+  parseJSON js@(Object o) = do
+    let cve = o .: "cve"
+    parseCveCommon js <*>
+      (cve >>= (.: "affects") >>= (.: "vendor") >>= (.: "vendor_data"))
   parseJSON _ = mzero
 
 instance ToJSON a => ToJSON (Cve a) where
   toJSON = genericToJSON $ aesonDrop (length ("Cve" :: String)) camelCase
 
 instance FromJSON (Cve CpeConfiguration) where
-  parseJSON (Object o) = do
-    let cve = o .: "cve"
-    dd <- cve >>= (.: "description") >>= (.: "description_data")
-    desc <-
-      case Vec.head dd of
-        Object o' -> o' .: "value"
-        _ -> fail "description_data must be an object"
-    confs <- (o .: "configurations") >>= (.: "nodes")
-    Cve <$> (cve >>= (.: "CVE_data_meta") >>= (.: "ID")) <*>
-      pure confs <*>
-      pure desc
+  parseJSON js@(Object o) =
+    parseCveCommon js <*> ((o .: "configurations") >>= (.: "nodes"))
   parseJSON _ = mzero
 
 -- | Name and list of vendor's products.
