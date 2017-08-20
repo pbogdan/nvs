@@ -16,6 +16,7 @@ library
         Nixpkgs.Maintainers
         Nixpkgs.Packages
         Nixpkgs.Packages.Aliases
+        Nixpkgs.Packages.Versions
         Nixpkgs.Packages.Types
         Nvs.Cli
         Nvs.Cli.Opts
