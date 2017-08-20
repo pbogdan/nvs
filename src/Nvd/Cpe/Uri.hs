@@ -18,7 +18,6 @@ import           Protolude hiding (Any, Product)
 import           Control.Monad (fail)
 import           Data.Aeson
 import           Data.Aeson.Types (typeMismatch)
-import           Data.String (fromString)
 import qualified Data.Text as Text
 import           GHC.TypeLits
 import           Nixpkgs.Packages.Types
@@ -154,14 +153,14 @@ cpeUriPackageName uri =
   case cpeProduct uri of
     NA -> Nothing
     Any -> Nothing
-    CpeValue v -> Just . fromString . toS $ v
+    CpeValue v -> Just . PackageName . toS $ v
 
 cpeUriPackageVersion :: CpeUri -> Maybe PackageVersion
 cpeUriPackageVersion uri =
   case cpeVersion uri of
     NA -> Nothing
     Any -> Nothing
-    CpeValue v -> Just . fromString . toS $ v
+    CpeValue v -> Just . PackageVersion . toS $ v
 
 cpeUriMatch :: (PackageName, PackageVersion) -> CpeUri -> Maybe Bool
 cpeUriMatch (name, version) uri = do

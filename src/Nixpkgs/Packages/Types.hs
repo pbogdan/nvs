@@ -15,10 +15,10 @@ Common package related types and utilities.
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
 module Nixpkgs.Packages.Types
-  ( PackageName
+  ( PackageName(..)
   , displayPackageName
   , parsePackageName
-  , PackageVersion
+  , PackageVersion(..)
   , displayPackageVersion
   , parsePackageVersion
   , ParsedPackageVersion

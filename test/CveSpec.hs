@@ -29,14 +29,14 @@ import           Test.QuickCheck
 import           Test.QuickCheck.Instances ()
 
 instance Arbitrary PackageName where
-  arbitrary = fromString <$> (arbitrary `suchThat` (\x ->length x <= 10))
+  arbitrary = PackageName <$> (arbitrary `suchThat` (\x -> Text.length x <= 10))
 
 instance Arbitrary PackageVersion where
   arbitrary = do
     major <- show <$> elements [1 .. 10 :: Int] :: Gen String
     minor <- show <$> elements [1 .. 10 :: Int]
     patch <- show <$> elements [1 .. 10 :: Int]
-    return $ fromString (major <> "." <> minor <> "." <> patch)
+    return . PackageVersion . toS $ (major <> "." <> minor <> "." <> patch)
 
 instance Arbitrary CveId where
   arbitrary = do
