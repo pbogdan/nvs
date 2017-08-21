@@ -22,14 +22,15 @@ import           Protolude
 
 import           Data.Aeson
 import           Data.Aeson.Types (typeMismatch)
+import           Data.List (nub)
 import           Data.List.NonEmpty (NonEmpty)
 import qualified Data.List.NonEmpty as NE
 import           GHC.TypeLits
 import           Nixpkgs.Packages.Types
+import           Nixpkgs.Packages.Versions
 import           Nvd.Cpe
 import           Nvd.Cpe.Uri hiding (Any)
 import           Nvd.Cve.Types
-import Data.List (nub)
 
 data Op
   = And
@@ -172,3 +173,27 @@ allNames =
 
 sameNames :: CpeTerms -> Bool
 sameNames terms = (length . nub $ allNames terms) == 1
+
+allVersions :: CpeTerms -> [PackageVersion]
+allVersions =
+  catMaybes .
+  foldr
+    (\(Payload cpe) acc -> (cpeUriPackageVersion . cpeCpeUri $ cpe) : acc)
+    mempty
+
+seriesMatch :: (PackageName, PackageVersion) -> CpeConfiguration -> Bool
+seriesMatch pkg@(_, version) cfg =
+  let vs = foldMap allVersions cfg
+      candidate = versionCandidate version vs
+  in case candidate of
+       Nothing -> False
+       Just v -> queryCpeConfiguration pkg (go v) cfg
+  where
+    go :: PackageVersion -> (PackageName, PackageVersion) -> Cpe -> Bool
+    go v pkg' cpe =
+      let ret = do
+            cVersion <- cpeUriPackageVersion . cpeCpeUri $ cpe
+            if cVersion == v
+              then cpeMatch pkg' cpe
+              else Just False
+      in fromMaybe False ret
