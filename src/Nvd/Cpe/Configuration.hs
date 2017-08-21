@@ -29,6 +29,7 @@ import           Nixpkgs.Packages.Types
 import           Nvd.Cpe
 import           Nvd.Cpe.Uri hiding (Any)
 import           Nvd.Cve.Types
+import Data.List (nub)
 
 data Op
   = And
@@ -118,8 +119,6 @@ runCpeQueries ::
   -> Configuration Bool
 runCpeQueries x f c = runIdentity $ for c $ Identity . queryTerms x f
 
--- eitherDecodeStrict s :: Either [Char] (Configuration (Terms (Payload Cpe "cpe")))
-
 collapse :: Configuration Bool -> Bool
 collapse (Leaf x) = x
 collapse (Branch op xs) =
@@ -151,3 +150,25 @@ cpeConfigurationMatch pkg cfg =
         Just True -> True
         Just False -> False
         Nothing -> False
+
+isReleaseSeries :: CpeConfiguration -> Bool
+isReleaseSeries = getAll . foldMap goCfg
+  where
+    goCfg :: CpeTerms -> All
+    goCfg terms =
+      foldMap goTerms terms <> All (sameNames terms) <>
+      All ((length . allNames $ terms) > 1)
+    goTerms :: Payload Cpe "cpe" -> All
+    goTerms (Payload cpe) =
+      let previousVersions = fromMaybe False (cpePreviousVersions cpe)
+      in All previousVersions
+
+allNames :: CpeTerms -> [PackageName]
+allNames =
+  catMaybes .
+  foldr
+    (\(Payload cpe) acc -> (cpeUriPackageName . cpeCpeUri $ cpe) : acc)
+    mempty
+
+sameNames :: CpeTerms -> Bool
+sameNames terms = (length . nub $ allNames terms) == 1
