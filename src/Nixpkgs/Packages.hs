@@ -49,7 +49,17 @@ data Package = Package
   , packageVersion :: PackageVersion -- ^ The version of the package
   , packageAttrPath :: Text
   , packageMeta :: PackageMeta -- ^ The meta data of the package
-  } deriving (Eq, Generic, Ord, Show)
+  } deriving (Eq, Generic, Show)
+
+instance Ord Package where
+  compare p1 p2 =
+    let v1 = packageVersion p1
+        v2 = packageVersion p2
+        n1 = packageName p1
+        n2 = packageName p2
+    in if v1 == v2 && n1 == n2
+         then EQ
+         else v1 `compare` v2
 
 instance FromJSON Package where
   parseJSON (Object o) =
