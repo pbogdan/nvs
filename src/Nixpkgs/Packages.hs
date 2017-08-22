@@ -153,7 +153,7 @@ instance FromJSON (KeyedSet Package) where
    = do
     pkgs <-
       sequenceA . Vec.fromList . HashMap.elems $
-      (flip HashMap.mapWithKey o $ \k v -> parsePackage k v)
+      HashMap.mapWithKey parsePackage o
     pure . KeyedSet . foldl' go HashMap.empty $ pkgs
     where
       go acc x =
