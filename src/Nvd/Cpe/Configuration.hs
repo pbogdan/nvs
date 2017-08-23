@@ -144,7 +144,9 @@ cpeConfigurationMatch pkg cfg =
           then cpeMatchExact
           else cpeMatchExact
       ln = foldr (\terms acc -> length terms + acc) 0 cfg
-  in queryCpeConfiguration pkg (go fn) cfg
+  in if isReleaseSeries cfg
+       then seriesMatch pkg cfg
+       else queryCpeConfiguration pkg (go fn) cfg
   where
     go fn pkg' cpe =
       case fn pkg' cpe of
