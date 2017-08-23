@@ -183,32 +183,20 @@ instance ToJSON VendorProduct where
   toJSON =
     genericToJSON $ aesonDrop (length ("VendorProduct" :: String)) camelCase
 
-preParse :: (MonadIO m, MonadError NvsError m, FromJSON a) => [FilePath] -> m a
-preParse paths = do
-  inputs <- traverse (liftIO . Bytes.readFile) paths
-  feeds <- liftIO . forConcurrently inputs $ return . eitherDecodeStrict'
-  case sequenceA feeds of
-    Left e -> throwError . FileParseError (unwords paths) . toS $ e
-    Right os -> do
-      let items = mapMaybe (HashMap.lookup ("CVE_Items" :: Text)) os
-          merged =
-            foldr
-              (\val acc ->
-                 case val of
-                   Array a -> (Vec.++) a acc
-                   _ -> acc)
-              Vec.empty
-              items
-          ret = parseEither parseJSON (Array merged)
-      either (throwError . FileParseError (unwords paths) . toS) return ret
+preParse :: (MonadIO m, MonadError NvsError m, FromJSON a) => FilePath -> m a
+preParse path = do
+  s <- liftIO . Bytes.readFile $ path
+  let parser = withObject "cves" $ \o -> o .: "CVE_Items" >>= parseJSON
+  let mRet = join (parseEither parser <$> eitherDecodeStrict s)
+  either (throwError . FileParseError path . toS) return mRet
 
 -- | Utility function for parsing CVE information out of NVD JSON feed.
 parseCves ::
      (Affects a, FromJSON (Cve a), Ord a, MonadError NvsError m, MonadIO m)
-  => [FilePath] -- ^ Path to the NVD JSON feed file
+  => FilePath -- ^ Path to the NVD JSON feed file
   -> m (HashMap PackageName (Set (Cve a)))
-parseCves paths = do
-  pkgs <- preParse paths
+parseCves path = do
+  pkgs <- preParse path
   return . cvesByPackage $ pkgs
 
 cvesByPackage ::

@@ -40,7 +40,6 @@ import           Nixpkgs.Maintainers
 import           Nixpkgs.Packages
 import           Nixpkgs.Packages.Aliases
 import           Nixpkgs.Packages.Types
-import           Nvd.Cpe.Configuration
 import           Nvd.Cve
 import           Nvs.Excludes
 import           Nvs.Files
@@ -102,15 +101,23 @@ report cvePaths pkgsPath mtsPath outPath mode matchMode = do
   case matchMode of
     Simple -> do
       vulns <-
-        (dropNvdExcludes es <$> parseCves cvePaths) >>= \cves ->
-          return (vulnsFor @VendorData pkgs aliases cves)
+        mconcat <$>
+        for
+          cvePaths
+          (\path ->
+             (dropNvdExcludes es <$> parseCves path) >>= \cves ->
+               return (vulnsFor @VendorData pkgs aliases cves))
       case mode of
         HTML -> renderHTML vulns mts outPath
         Markdown -> renderMarkdown vulns mts outPath
     Cpe -> do
       vulns <-
-        (dropNvdExcludes es <$> parseCves cvePaths) >>= \cves ->
-          return (vulnsFor @CpeConfiguration pkgs aliases cves)
+        mconcat <$>
+        for
+          cvePaths
+          (\path ->
+             (dropNvdExcludes es <$> parseCves path) >>= \cves ->
+               return (vulnsFor @VendorData pkgs aliases cves))
       case mode of
         HTML -> renderHTML vulns mts outPath
         Markdown -> renderMarkdown vulns mts outPath
