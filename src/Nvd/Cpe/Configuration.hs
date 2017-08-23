@@ -43,13 +43,12 @@ instance FromJSON Op where
   parseJSON x = typeMismatch "Op" x
 
 data Terms a =
-  Terms Op
-        (NonEmpty a)
+  Terms Op [a]
   deriving (Eq, Functor, Foldable, Traversable, Ord, Show)
 
 queryTerms :: b -> (b -> a -> Bool) -> Terms a -> Bool
 queryTerms y f (Terms op xs) =
-  let ys = NE.map (f y) xs
+  let ys = map (f y) xs
   in case op of
        And -> getAll . foldMap All $ ys
        Or -> getAny . foldMap Any $ ys
@@ -73,7 +72,10 @@ instance (s ~ PayloadKey a, KnownSymbol s, FromJSON a) =>
          FromJSON (Terms (Payload a s)) where
   parseJSON (Object o) =
     let prefix = toS (symbolVal (Proxy :: Proxy s))
-    in Terms <$> o .: "operator" <*> (parseJSON =<< o .: prefix)
+    in Terms <$> o .: "operator" <*>
+       (o .:? prefix >>= \x -> do
+          y <- sequenceA $ parseJSON <$> x
+          return . fromMaybe [] $ y)
   parseJSON x = typeMismatch "Terms" x
 
 instance ToJSON a => ToJSON (Terms (Payload a s)) where
