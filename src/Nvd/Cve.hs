@@ -19,7 +19,7 @@ Utilities to interface with JSON feeds provided by NVD.
 -}
 
 module Nvd.Cve
-  ( CveId
+  ( CveId(..)
   , displayCveId
   , Cve(..)
   , VendorData(..)
