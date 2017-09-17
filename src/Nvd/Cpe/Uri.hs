@@ -61,13 +61,6 @@ data CpeUri = CpeUri
   , cpeVendor :: CpeValue (Segment Vendor 3) Text
   , cpeProduct :: CpeValue (Segment Product 4) Text
   , cpeVersion :: CpeValue (Segment Version 5) Text
-  , cpeUpdate :: CpeValue (Segment Update 6) Text
-  , cpeEdition :: CpeValue (Segment Edition 7) Text
-  , cpeLanguage :: CpeValue (Segment Language 8) Text
-  , cpeSwEdition :: CpeValue (Segment SwEdition 9) Text
-  , cpeTargetSw :: CpeValue (Segment TargetSw 10) Text
-  , cpeTargetHw :: CpeValue (Segment TargetHw 11) Text
-  , cpeOther :: CpeValue (Segment Other 12) Text
   } deriving (Eq, Show)
 
 instance Ord CpeUri where
@@ -107,14 +100,7 @@ parseCpeUri :: Text -> Either Text CpeUri
 parseCpeUri s =
   CpeUri <$> parseCpePart s <*> parseCpeValue (Proxy :: Proxy 3) s <*>
   parseCpeValue (Proxy :: Proxy 4) s <*>
-  parseCpeValue (Proxy :: Proxy 5) s <*>
-  parseCpeValue (Proxy :: Proxy 6) s <*>
-  parseCpeValue (Proxy :: Proxy 7) s <*>
-  parseCpeValue (Proxy :: Proxy 8) s <*>
-  parseCpeValue (Proxy :: Proxy 9) s <*>
-  parseCpeValue (Proxy :: Proxy 10) s <*>
-  parseCpeValue (Proxy :: Proxy 11) s <*>
-  parseCpeValue (Proxy :: Proxy 12) s
+  parseCpeValue (Proxy :: Proxy 5) s
 
 parseCpeValue ::
      (KnownNat b, b ~ SegmentIndex a)
