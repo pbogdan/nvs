@@ -42,7 +42,7 @@ import           Data.HashMap.Strict (HashMap)
 import qualified Data.HashMap.Strict as HashMap
 import           Data.Set (Set)
 import qualified Data.Set as Set
-import           Data.String (String, IsString(..), unwords)
+import           Data.String (String, IsString(..))
 import qualified Data.Text as Text
 import           Data.Vector (Vector)
 import qualified Data.Vector as Vec
