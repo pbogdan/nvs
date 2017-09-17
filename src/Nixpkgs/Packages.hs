@@ -21,6 +21,7 @@ module Nixpkgs.Packages
   , PackageMeta(..)
   , PackageLicense(..)
   , LicenseDetails(..)
+  , KeyedSet(..)
   , PackageSet
   , parsePackages
   ) where
