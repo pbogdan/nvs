@@ -29,6 +29,7 @@ module Nvd.Cve
   , cvesByPackage
   , cvesForPackage
   , vulnsFor
+  , vulnsFor'
   ) where
 
 import           Protolude
@@ -252,3 +253,26 @@ vulnsFor ::
   -> [(Package, Set (Cve a))]
 vulnsFor pkgs aliases cves =
   foldl' (\acc pkg -> cvesForPackage pkg aliases cves : acc) [] pkgs
+
+-- @TODO: it doesn't handle aliases correctly when producing the reduced package
+-- set
+vulnsFor' ::
+     (Affects (Cve a), Affects a, Ord a, Show a)
+  => Cve a
+  -> PackageSet
+  -> HashMap PackageName PackageAlias
+  -> [(Package, Set (Cve a))]
+vulnsFor' cve (KeyedSet pkgs) aliases =
+  let candidates =
+        foldl' (\m n -> HashMap.insert n (Set.singleton cve) m) HashMap.empty .
+        packages $
+        cve
+      pkgs' =
+        foldl'
+          (\m (name, set) -> HashMap.insertWith Set.union name set m)
+          HashMap.empty .
+        mapMaybe (`lookupWithKey` pkgs) . packages $
+        cve
+  in vulnsFor (KeyedSet pkgs') aliases candidates
+  where
+    lookupWithKey k m = (,) <$> pure k <*> HashMap.lookup k m
