@@ -32,7 +32,7 @@ module Nvd.Cve
   , vulnsFor'
   ) where
 
-import           Protolude
+import           Protolude hiding (transpose)
 
 import           Control.Monad
 import           Data.Aeson
@@ -254,8 +254,6 @@ vulnsFor ::
 vulnsFor pkgs aliases cves =
   foldl' (\acc pkg -> cvesForPackage pkg aliases cves : acc) [] pkgs
 
--- @TODO: it doesn't handle aliases correctly when producing the reduced package
--- set
 vulnsFor' ::
      (Affects (Cve a), Affects a, Ord a, Show a)
   => Cve a
@@ -263,7 +261,8 @@ vulnsFor' ::
   -> HashMap PackageName PackageAlias
   -> [(Package, Set (Cve a))]
 vulnsFor' cve (KeyedSet pkgs) aliases =
-  let candidates =
+  let aliases' = mapMaybe (`HashMap.lookup` transpose aliases) . packages $ cve
+      candidates =
         foldl' (\m n -> HashMap.insert n (Set.singleton cve) m) HashMap.empty .
         packages $
         cve
@@ -271,8 +270,16 @@ vulnsFor' cve (KeyedSet pkgs) aliases =
         foldl'
           (\m (name, set) -> HashMap.insertWith Set.union name set m)
           HashMap.empty .
-        mapMaybe (`lookupWithKey` pkgs) . packages $
-        cve
+        mapMaybe (`lookupWithKey` pkgs) $
+        (aliases' <> packages cve)
   in vulnsFor (KeyedSet pkgs') aliases candidates
   where
     lookupWithKey k m = (,) <$> pure k <*> HashMap.lookup k m
+    transpose ::
+         HashMap PackageName PackageAlias -> HashMap PackageName PackageName
+    transpose =
+      foldl'
+        (\acc x ->
+           foldr (`HashMap.insert` packageAliasPackage x) acc $
+           packageAliasAliases x)
+        HashMap.empty
