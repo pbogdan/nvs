@@ -51,14 +51,7 @@ instance Arbitrary b => Arbitrary (CpeValue a b) where
   arbitrary = oneof [pure Any, pure NA, CpeValue <$> arbitrary]
 
 instance Arbitrary CpeUri where
-  arbitrary =
-    CpeUri <$> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary <*>
-    arbitrary <*>
-    arbitrary <*>
-    arbitrary <*>
-    arbitrary <*>
-    arbitrary <*>
-    arbitrary
+  arbitrary = CpeUri <$> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary
 
 instance Arbitrary Cpe where
   arbitrary = Cpe <$> arbitrary <*> arbitrary <*> arbitrary

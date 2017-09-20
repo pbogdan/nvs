@@ -29,9 +29,10 @@ module Nvd.Cve
   , cvesByPackage
   , cvesForPackage
   , vulnsFor
+  , vulnsFor'
   ) where
 
-import           Protolude
+import           Protolude hiding (transpose)
 
 import           Control.Monad
 import           Data.Aeson
@@ -42,7 +43,7 @@ import           Data.HashMap.Strict (HashMap)
 import qualified Data.HashMap.Strict as HashMap
 import           Data.Set (Set)
 import qualified Data.Set as Set
-import           Data.String (String, IsString(..), unwords)
+import           Data.String (String, IsString(..))
 import qualified Data.Text as Text
 import           Data.Vector (Vector)
 import qualified Data.Vector as Vec
@@ -252,3 +253,33 @@ vulnsFor ::
   -> [(Package, Set (Cve a))]
 vulnsFor pkgs aliases cves =
   foldl' (\acc pkg -> cvesForPackage pkg aliases cves : acc) [] pkgs
+
+vulnsFor' ::
+     (Affects (Cve a), Affects a, Ord a, Show a)
+  => Cve a
+  -> PackageSet
+  -> HashMap PackageName PackageAlias
+  -> [(Package, Set (Cve a))]
+vulnsFor' cve (KeyedSet pkgs) aliases =
+  let aliases' = mapMaybe (`HashMap.lookup` transpose aliases) . packages $ cve
+      candidates =
+        foldl' (\m n -> HashMap.insert n (Set.singleton cve) m) HashMap.empty .
+        packages $
+        cve
+      pkgs' =
+        foldl'
+          (\m (name, set) -> HashMap.insertWith Set.union name set m)
+          HashMap.empty .
+        mapMaybe (`lookupWithKey` pkgs) $
+        (aliases' <> packages cve)
+  in vulnsFor (KeyedSet pkgs') aliases candidates
+  where
+    lookupWithKey k m = (,) <$> pure k <*> HashMap.lookup k m
+    transpose ::
+         HashMap PackageName PackageAlias -> HashMap PackageName PackageName
+    transpose =
+      foldl'
+        (\acc x ->
+           foldr (`HashMap.insert` packageAliasPackage x) acc $
+           packageAliasAliases x)
+        HashMap.empty

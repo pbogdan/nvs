@@ -11,7 +11,6 @@ This module provides simple utilities to work with JSON representation of
 nixpkgs packages.
 -}
 {-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE DeriveFoldable #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
 
@@ -21,6 +20,7 @@ module Nixpkgs.Packages
   , PackageMeta(..)
   , PackageLicense(..)
   , LicenseDetails(..)
+  , KeyedSet(..)
   , PackageSet
   , parsePackages
   ) where
@@ -142,7 +142,13 @@ instance ToJSON LicenseDetails where
 
 newtype KeyedSet a =
   KeyedSet (HashMap PackageName (Set a))
-  deriving (Eq, Foldable, Show)
+  deriving (Eq, Show)
+
+instance Foldable KeyedSet where
+  {-# INLINE foldr #-}
+  foldr f z (KeyedSet t) = HashMap.foldr (\ acc x -> Set.foldr f x acc) z t
+  {-# INLINE foldl' #-}
+  foldl' f z (KeyedSet t) = HashMap.foldl' (\ acc x -> Set.foldl' f acc x) z t
 
 instance Ord a => Monoid (KeyedSet a) where
   mempty = KeyedSet HashMap.empty

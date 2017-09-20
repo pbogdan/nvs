@@ -25,11 +25,14 @@ module Nvs.Report
 import           Protolude hiding (link)
 
 import           Control.Monad.Logger
-import           Data.Aeson
+import           Data.Aeson hiding ((.:))
 import           Data.Aeson.Casing
 import qualified Data.ByteString as Bytes
+import qualified Data.ByteString.Streaming as Stream (readFile)
+import qualified Data.ByteString.Streaming.Aeson as Stream
 import           Data.HashMap.Strict (HashMap)
 import qualified Data.HashMap.Strict as HashMap
+import           Data.JsonStream.Parser
 import           Data.Set (Set)
 import qualified Data.Set as Set
 import           Data.String (String)
@@ -45,7 +48,10 @@ import           Nvd.Cve
 import           Nvs.Excludes
 import           Nvs.Files
 import           Nvs.Types
+import qualified Streaming as Stream
+import qualified Streaming.Prelude as Stream hiding (readFile)
 import           Text.EDE
+
 
 -- | Specifies rendering mode, or more precisely the output format.
 data Output
@@ -112,13 +118,16 @@ report cvePaths pkgsPath mtsPath outPath mode matchMode = do
         HTML -> renderHTML vulns mts outPath
         Markdown -> renderMarkdown vulns mts outPath
     Cpe -> do
+      let parser = "CVE_Items" .: arrayOf value :: Parser (Cve CpeConfiguration)
+          go path =
+            Stream.readFile path & Stream.streamParse parser & void &
+            Stream.filter (\cve -> cveId cve `notElem` nvdExcludes es) &
+            Stream.map (\cve -> vulnsFor' cve pkgs aliases) &
+            Stream.filter (not . null . filter (not . Set.null . snd)) &
+            Stream.mconcat_
       vulns <-
         mconcat <$>
-        for
-          cvePaths
-          (\path ->
-             (dropNvdExcludes es <$> parseCves path) >>= \cves ->
-               return (vulnsFor @CpeConfiguration pkgs aliases cves))
+        liftIO (forConcurrently cvePaths (Stream.runResourceT . go))
       case mode of
         HTML -> renderHTML vulns mts outPath
         Markdown -> renderMarkdown vulns mts outPath
