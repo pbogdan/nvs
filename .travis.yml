@@ -1,5 +1,9 @@
 language: nix
 sudo: true
 script:
-- nix-build -I nixpkgs=https://nixos.org/channels/nixos-17.03/nixexprs.tar.xz
-- nix-build -I nixpkgs=https://nixos.org/channels/nixos-unstable/nixexprs.tar.xz
+- nix-build -I nixpkgs=https://nixos.org/channels/nixos-17.03/nixexprs.tar.xz -Q
+- ./test/generate-report nixos-17.09
+- ./test/generate-report nixos-unstable
+- nix-build -I nixpkgs=https://nixos.org/channels/nixos-unstable/nixexprs.tar.xz -Q
+- ./test/generate-report nixos-17.09
+- ./test/generate-report nixos-unstable
