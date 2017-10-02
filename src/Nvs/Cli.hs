@@ -78,7 +78,7 @@ generateMaintainers nixpkgs tmpDir = do
       option
         "-E"
         ("let m = import " <> nixpkgs <>
-         "/lib/maintainers.nix; in builtins.toJSON m")
+         "/lib/maintainers.nix {}; in builtins.toJSON m")
   liftIO $ Text.writeFile (tmpDir <> "/maintainers.json") (read . toS $ ret)
 
 generatePackages ::
