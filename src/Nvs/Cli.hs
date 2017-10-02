@@ -75,10 +75,10 @@ generateMaintainers nixpkgs tmpDir = do
   ret <-
     shell "nix-instantiate" $ do
       arg "--eval"
+      option "-I" ("nixpkgs=" <> nixpkgs)
       option
         "-E"
-        ("let m = import " <> nixpkgs <>
-         "/lib/maintainers.nix {}; in builtins.toJSON m")
+        ("with (import <nixpkgs> {}); builtins.toJSON lib.maintainers")
   liftIO $ Text.writeFile (tmpDir <> "/maintainers.json") (read . toS $ ret)
 
 generatePackages ::
