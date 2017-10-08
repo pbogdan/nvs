@@ -13,6 +13,7 @@ Report rendering utilities.
 
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE UndecidableInstances #-}
 
@@ -165,6 +166,7 @@ renderHTML vulns mts outPath =
               th_ [width_ "15%"] "Package version"
               th_ [width_ "15%"] "CVE ID"
               th_ "CVE description"
+              th_ "Severity"
           tbody_ $
             for_ (sortBy (compare `on` packageName . fst) vulns) $ \(pkg, cves') ->
               for_ (Set.toAscList cves') $ \cve -> do
@@ -189,6 +191,7 @@ renderHTML vulns mts outPath =
                        ]
                        (toHtml . displayCveId . cveId $ cve))
                   td_ (toHtml . cveDescription $ cve)
+                  td_ (renderSeverity . cveSeverity $ cve)
                 tr_ $ do
                   td_ [colspan_ "3"] ""
                   td_ $ do
@@ -197,6 +200,25 @@ renderHTML vulns mts outPath =
                       for_ (packageMetaMaintainers . packageMeta $ pkg) $ \maintainers ->
                         for_ maintainers $ \maintainer ->
                           li_ (renderMaintainer maintainer mts)
+                  td_ [] ""
+
+renderSeverity :: Monad m => Maybe Severity -> HtmlT m ()
+renderSeverity severity =
+  let label =
+        case severity of
+          Nothing -> "label-default"
+          Just Low -> "label-info"
+          Just Medium -> "label-warning"
+          Just High -> "label-danger"
+          Just Critical -> "label-danger"
+      (text :: Text) =
+        case severity of
+          Nothing -> "unknown"
+          Just Low -> "Low"
+          Just Medium -> "Medium"
+          Just High -> "High"
+          Just Critical -> "Critical"
+  in span_ [classes_ ["label", label]] (toHtml text)
 
 renderMaintainer :: Monad m => Text -> HashMap Text Maintainer -> HtmlT m ()
 renderMaintainer mt mts =
