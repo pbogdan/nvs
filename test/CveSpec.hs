@@ -44,6 +44,9 @@ instance Arbitrary CveId where
     id <- show <$> elements [0 .. 10000 :: Int]
     return $ fromString ("CVE-" <> year <> "-" <> id)
 
+instance Arbitrary Severity where
+  arbitrary = elements [Low, Medium, High, Critical]
+
 instance Arbitrary CpePart where
   arbitrary = elements [Application, OS, Hardware, Unknown]
 
@@ -80,6 +83,7 @@ instance Arbitrary VendorData where
 instance Arbitrary (Cve VendorData) where
   arbitrary =
     Cve <$> arbitrary <*> (arbitrary `suchThat` (\x -> Text.length x <= 10)) <*>
+    arbitrary <*>
     arbitrary
 
 newtype CveConstProducts = CveConstProducts
@@ -94,7 +98,9 @@ dummyVendorData = VendorData "" [VendorProduct "dummy" ["0.0.1"]]
 
 instance Arbitrary CveConstProducts where
   arbitrary = do
-    cve <- Cve <$> arbitrary <*> pure "description" <*> pure [dummyVendorData]
+    cve <-
+      Cve <$> arbitrary <*> pure "description" <*> pure Nothing <*>
+      pure [dummyVendorData]
     return . CveConstProducts $ cve
 
 newtype CveMultiple = CveMultiple
