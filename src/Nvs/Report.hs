@@ -151,14 +151,7 @@ renderHTML vulns mts outPath =
         ]
     body_ $
       container_ $ do
-        h1_ "Introduction"
-        p_
-          "This is POC that performs a scan against JSON feed from National Vulnerability Database https://nvd.nist.gov/vuln/data-feeds#JSON_FEED and recent-ish checkout of release-17.03 branch of nixpkgs."
-        p_
-          "As this is an early prototype it may not be completely accurate. It also doesn't scan all of packages such as those nested deeper in the attribute hierarchy of nixpkgs. Not all of CVEs may be relevant as well so addressing them would require further manual review - for example if a security patch has been applied without corresponding version bump of the package."
-        p_
-          "When listing maintainers the assumption that their handle is a valid GitHub username may not hold."
-        h2_ "Potential CVEs"
+        h1_ "Potential CVEs"
         table_ [class_ "table"] $ do
           thead_ $
             tr_ $ do
