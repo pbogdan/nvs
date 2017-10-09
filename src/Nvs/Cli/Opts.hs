@@ -45,10 +45,11 @@ parseOptions =
   (toS <$>
    strOption
      (long "nixpkgs" <> metavar "nixpkgs" <> help "Path to nixpkgs checkout.")) <*>
-  flag
-    HTML
-    Markdown
-    (long "markdown" <> help "render markdown instead of HTML.") <*>
+  asum
+    [ flag' HTML (long "html" <> help "Render HTML.")
+    , flag' Markdown (long "markdown" <> help "Render Markdown.")
+    , flag' JSON (long "json" <> help "Render JSON.")
+    ] <*>
   flag Simple Cpe (long "cpe" <> help "use CPE matching mode.") <*>
   (toS <$>
    argument str (metavar "file" <> help "Output path for the generated report.")) <*>

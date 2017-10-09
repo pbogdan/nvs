@@ -34,8 +34,8 @@ nvs requires:
 Available command line options:
 
 ```
-Usage: nvs --nvd-feed nvd-feed --nixpkgs nixpkgs [--markdown] [--cpe] file
-           [--verbose]
+Usage: nvs --nvd-feed nvd-feed --nixpkgs nixpkgs (--html | --markdown | --json)
+           [--cpe] file [--verbose]
   Experimental CVE scanner for nixpkgs
 
 Available options:
@@ -43,7 +43,9 @@ Available options:
   --nvd-feed nvd-feed      Path to a copy of the NVD JSON feed. May be specified
                            multiple times.
   --nixpkgs nixpkgs        Path to nixpkgs checkout.
-  --markdown               render markdown instead of HTML.
+  --html                   Render HTML.
+  --markdown               Render Markdown.
+  --json                   Render JSON.
   --cpe                    use CPE matching mode.
   file                     Output path for the generated report.
   --verbose                Verbose output.
@@ -52,10 +54,10 @@ Available options:
 Example invocation:
 
 ```
-$ nvs --nvd-feed /home/pbogdan/nvdcve-1.0-2017.json --nixpkgs /home/pbogdan/nixpkgs report.html
+$ nvs --nvd-feed /home/pbogdan/nvdcve-1.0-2017.json --nixpkgs /home/pbogdan/nixpkgs --html report.html
 ```
 
-will produce an HTML report in the current directory. Alternatively the `--markdown` switch produces a format more suitable for usage in GitHub issues.
+will produce an HTML report in the current directory. 
 
 #### Managing vulnerabilites exclusions
 

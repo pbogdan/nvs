@@ -57,6 +57,7 @@ import           Text.EDE
 -- | Specifies rendering mode, or more precisely the output format.
 data Output
   = HTML
+  | JSON
   | Markdown
   deriving (Eq, Show)
 
@@ -118,6 +119,7 @@ report cvePaths pkgsPath mtsPath outPath mode matchMode = do
       case mode of
         HTML -> renderHTML vulns mts outPath
         Markdown -> renderMarkdown vulns mts outPath
+        JSON -> renderJSON vulns mts outPath
     Cpe -> do
       let parser = "CVE_Items" .: arrayOf value :: Parser (Cve CpeConfiguration)
           go path =
@@ -127,11 +129,11 @@ report cvePaths pkgsPath mtsPath outPath mode matchMode = do
             Stream.filter (not . null . filter (not . Set.null . snd)) &
             Stream.mconcat_
       vulns <-
-        mconcat <$>
-        liftIO (forConcurrently cvePaths (Stream.runResourceT . go))
+        mconcat <$> liftIO (forConcurrently cvePaths (Stream.runResourceT . go))
       case mode of
         HTML -> renderHTML vulns mts outPath
         Markdown -> renderMarkdown vulns mts outPath
+        JSON -> renderJSON vulns mts outPath
 
 renderHTML ::
      MonadIO m
@@ -231,6 +233,12 @@ renderMaintainer mt mts =
            [href_ ("https://github.com/" <> maintainerHandle mt')]
            (toHtml ("@" <> maintainerHandle mt'))
 
+fst3 :: (a, b, c) -> a
+fst3 (a, _, _) = a
+
+uncurry3 :: (a -> b -> c -> d) -> ((a, b, c) -> d)
+uncurry3 f ~(a, b, c) = f a b c
+
 renderMarkdown ::
      (ToJSON a, MonadIO m)
   => [(Package, Set (Cve a))]
@@ -255,8 +263,20 @@ renderMarkdown vulns mts outPath = do
       putText $ "Rendering failed: " <> toS e
       liftIO exitFailure
     Right out -> liftIO $ Bytes.writeFile (toS outPath) (toS out)
-  where
-    fst3 :: (a, b, c) -> a
-    fst3 (a, _, _) = a
-    uncurry3 :: (a -> b -> c -> d) -> ((a, b, c) -> d)
-    uncurry3 f ~(a, b, c) = f a b c
+
+renderJSON ::
+     (ToJSON a, MonadIO m)
+  => [(Package, Set (Cve a))]
+  -> HashMap Text Maintainer
+  -> FilePath
+  -> m ()
+renderJSON vulns mts outPath = do
+  let cves' =
+        map (uncurry3 CveWithPackage) .
+        sortBy (compare `on` cveId . fst3) .
+        concatMap
+          ((\(p, cves) ->
+              map (\cve -> (cve, p, findMaintersForPackage p mts)) cves) .
+           second Set.toAscList) $
+        vulns
+  liftIO $ Bytes.writeFile (toS outPath) (toS . encode $ cves')
