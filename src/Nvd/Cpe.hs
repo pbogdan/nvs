@@ -1,3 +1,5 @@
+{-# LANGUAGE DeriveGeneric #-}
+
 module Nvd.Cpe
   ( Cpe(..)
   , cpeMatch
@@ -15,7 +17,7 @@ data Cpe = Cpe
   { cpeVulnerable :: Bool
   , cpePreviousVersions :: Maybe Bool
   , cpeCpeUri :: CpeUri
-  } deriving (Eq, Ord, Show)
+  } deriving (Eq, Generic, Ord, Show)
 
 instance FromJSON Cpe where
   parseJSON (Object o) =
@@ -23,7 +25,6 @@ instance FromJSON Cpe where
   parseJSON x = typeMismatch "Cpe" x
 
 instance ToJSON Cpe where
-  toJSON _ = undefined
 
 (<&&>) :: Maybe Bool -> Maybe Bool -> Maybe Bool
 (<&&>) = liftA2 (&&)

@@ -1,4 +1,5 @@
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE ScopedTypeVariables #-}
@@ -33,7 +34,7 @@ data CpeValue a b
   = Any
   | NA
   | CpeValue b
-  deriving (Eq, Ord, Show)
+  deriving (Eq, Generic, Ord, Show)
 
 instance Monoid b => Monoid (CpeValue a b) where
   mempty = CpeValue mempty
@@ -56,12 +57,14 @@ instance Applicative (CpeValue a) where
   (CpeValue _) <*> Any = Any
   (CpeValue _) <*> NA = NA
 
+instance (ToJSON a, ToJSON b) => ToJSON (CpeValue a b)
+
 data CpeUri = CpeUri
   { cpePart :: CpePart
   , cpeVendor :: CpeValue (Segment Vendor 3) Text
   , cpeProduct :: CpeValue (Segment Product 4) Text
   , cpeVersion :: CpeValue (Segment Version 5) Text
-  } deriving (Eq, Show)
+  } deriving (Eq, Generic, Show)
 
 instance Ord CpeUri where
   x `compare` y = cpeVersion x `compare` cpeVersion y
@@ -69,6 +72,9 @@ instance Ord CpeUri where
 instance FromJSON CpeUri where
   parseJSON (String s) = either (fail . toS) pure (parseCpeUri s)
   parseJSON x = typeMismatch "CpeUri" x
+
+instance ToJSON CpeUri where
+  toJSON _ = object []
 
 data Vendor
 data Product

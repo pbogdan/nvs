@@ -1,6 +1,7 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE DeriveFoldable #-}
 {-# LANGUAGE DeriveFunctor #-}
+{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DeriveTraversable #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GADTs #-}
@@ -35,12 +36,14 @@ import           Nvd.Cve.Types
 data Op
   = And
   | Or
-  deriving (Eq, Ord, Show)
+  deriving (Eq, Generic, Ord, Show)
 
 instance FromJSON Op where
   parseJSON (String "AND") = pure And
   parseJSON (String "OR") = pure Or
   parseJSON x = typeMismatch "Op" x
+
+instance ToJSON Op where
 
 data Terms a =
   Terms Op [a]
@@ -78,14 +81,14 @@ instance (s ~ PayloadKey a, KnownSymbol s, FromJSON a) =>
           return . fromMaybe [] $ y)
   parseJSON x = typeMismatch "Terms" x
 
-instance ToJSON a => ToJSON (Terms (Payload a s)) where
-  toJSON _ = undefined
+instance ToJSON (Terms (Payload a s)) where
+  toJSON _ = object []
 
 data Configuration a
   = Leaf a
   | Branch Op
            (NonEmpty (Configuration a))
-  deriving (Eq, Foldable, Traversable, Functor, Ord, Show)
+  deriving (Eq, Generic, Foldable, Traversable, Functor, Ord, Show)
 
 instance FromJSON a => FromJSON (Configuration a) where
   parseJSON js@(Object o) = do
@@ -99,7 +102,6 @@ instance FromJSON a => FromJSON (Configuration a) where
   parseJSON x = typeMismatch "Configuration" x
 
 instance ToJSON a => ToJSON (Configuration a) where
-  toJSON _ = undefined
 
 type CpeTerms = Terms (Payload Cpe "cpe")
 
