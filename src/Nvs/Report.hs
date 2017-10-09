@@ -181,6 +181,7 @@ renderHTML vulns mts outPath =
                        [ href_
                            ("https://nvd.nist.gov/vuln/detail/" <>
                             (displayCveId . cveId $ cve))
+                       , target_ "blank"
                        ]
                        (toHtml . displayCveId . cveId $ cve))
                   td_ (toHtml . cveDescription $ cve)
