@@ -7,6 +7,9 @@ nvd:
     # ettercap: patches added in b29051b2f5c5493f56c4cae9f21b2014328c5a56
     - CVE-2017-8366
     - CVE-2017-6430
+    # fuseiso: patches added in 668572753c598ed4bf617794093bfb91aa82427c
+    - CVE-2015-8836
+    - CVE-2015-8837
 
 # GLSAs are not supported as of yet, leaving this as a placeholder for when / if
 # they are
