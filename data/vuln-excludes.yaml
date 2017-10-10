@@ -16,6 +16,8 @@ nvd:
     # procmail: patches added in f7066d433c7d7f4c28383e420ff2d812797b916c
     - CVE-2014-3618
     # xen
+    - CVE-2017-8903
+    - CVE-2017-8904
     - CVE-2016-9377
     - CVE-2016-9378
     - CVE-2016-9382
@@ -33,6 +35,7 @@ nvd:
     - CVE-2017-10920
     - CVE-2017-10921
     - CVE-2017-10922
+    - CVE-2017-14431
 
 # GLSAs are not supported as of yet, leaving this as a placeholder for when / if
 # they are
