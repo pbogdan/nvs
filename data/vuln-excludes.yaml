@@ -13,6 +13,8 @@ nvd:
     # jq: patches added in bfbca9dacd12d24c0d6179cc6d9b0775a9819caa
     - CVE-2015-8863
     - CVE-2016-4074
+    # procmail: patches added in f7066d433c7d7f4c28383e420ff2d812797b916c
+    - CVE-2014-3618
 
 # GLSAs are not supported as of yet, leaving this as a placeholder for when / if
 # they are
