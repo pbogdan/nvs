@@ -10,6 +10,9 @@ nvd:
     # fuseiso: patches added in 668572753c598ed4bf617794093bfb91aa82427c
     - CVE-2015-8836
     - CVE-2015-8837
+    # jq: patches added in bfbca9dacd12d24c0d6179cc6d9b0775a9819caa
+    - CVE-2015-8863
+    - CVE-2016-4074
 
 # GLSAs are not supported as of yet, leaving this as a placeholder for when / if
 # they are
