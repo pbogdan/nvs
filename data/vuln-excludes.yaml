@@ -4,6 +4,9 @@ nvd:
     - CVE-2001-1593
     - CVE-2014-0466
     - CVE-2015-8107
+    # ettercap: patches added in b29051b2f5c5493f56c4cae9f21b2014328c5a56
+    - CVE-2017-8366
+    - CVE-2017-6430
 
 # GLSAs are not supported as of yet, leaving this as a placeholder for when / if
 # they are
