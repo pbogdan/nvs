@@ -36,6 +36,8 @@ nvd:
     - CVE-2017-10921
     - CVE-2017-10922
     - CVE-2017-14431
+    # capstone: only applicable on Windows
+    - CVE-2017-6952
 
 # GLSAs are not supported as of yet, leaving this as a placeholder for when / if
 # they are
