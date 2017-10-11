@@ -38,6 +38,8 @@ nvd:
     - CVE-2017-14431
     # capstone: only applicable on Windows
     - CVE-2017-6952
+    # lightdm: only applicable on Ubuntu
+    - CVE-2017-7358
 
 # GLSAs are not supported as of yet, leaving this as a placeholder for when / if
 # they are
