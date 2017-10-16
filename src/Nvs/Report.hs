@@ -28,7 +28,6 @@ import           Protolude hiding (link)
 import           Control.Monad.Logger
 import           Data.Aeson hiding ((.:))
 import           Data.Aeson.Casing
-import qualified Data.ByteString as Bytes
 import qualified Data.ByteString.Streaming as Stream (readFile)
 import qualified Data.ByteString.Streaming.Aeson as Stream
 import           Data.HashMap.Strict (HashMap)
@@ -93,11 +92,10 @@ report ::
   => [FilePath] -- ^ path to NVD JSON feed
   -> FilePath -- ^ path to packages.json file
   -> FilePath -- ^ path to maintainers.json file
-  -> FilePath -- ^ output path for the generated report
   -> Output -- ^ what type of output to generate
   -> Matching
   -> m ()
-report cvePaths pkgsPath mtsPath outPath mode matchMode = do
+report cvePaths pkgsPath mtsPath mode matchMode = do
   logInfoN "Parsing excludes"
   es <- parseExcludes =<< findFile "data/vuln-excludes.yaml"
   logInfoN "Parsing NVD feed"
@@ -117,9 +115,9 @@ report cvePaths pkgsPath mtsPath outPath mode matchMode = do
              (dropNvdExcludes es <$> parseCves path) >>= \cves ->
                return (vulnsFor @VendorData pkgs aliases cves))
       case mode of
-        HTML -> renderHTML vulns mts outPath
-        Markdown -> renderMarkdown vulns mts outPath
-        JSON -> renderJSON vulns mts outPath
+        HTML -> renderHTML vulns mts
+        Markdown -> renderMarkdown vulns mts
+        JSON -> renderJSON vulns mts
     Cpe -> do
       let parser = "CVE_Items" .: arrayOf value :: Parser (Cve CpeConfiguration)
           go path =
@@ -131,18 +129,17 @@ report cvePaths pkgsPath mtsPath outPath mode matchMode = do
       vulns <-
         mconcat <$> liftIO (forConcurrently cvePaths (Stream.runResourceT . go))
       case mode of
-        HTML -> renderHTML vulns mts outPath
-        Markdown -> renderMarkdown vulns mts outPath
-        JSON -> renderJSON vulns mts outPath
+        HTML -> renderHTML vulns mts
+        Markdown -> renderMarkdown vulns mts
+        JSON -> renderJSON vulns mts
 
 renderHTML ::
      MonadIO m
   => [(Package, Set (Cve a))]
   -> HashMap Text Maintainer
-  -> FilePath
   -> m ()
-renderHTML vulns mts outPath =
-  liftIO . renderToFile outPath $ do
+renderHTML vulns mts =
+  putText . toS . renderText $ do
     doctype_
     head_ $ do
       meta_ [makeAttribute "charset" "utf-8"]
@@ -243,9 +240,8 @@ renderMarkdown ::
      (ToJSON a, MonadIO m)
   => [(Package, Set (Cve a))]
   -> HashMap Text Maintainer
-  -> FilePath
   -> m ()
-renderMarkdown vulns mts outPath = do
+renderMarkdown vulns mts = do
   let cves' =
         map (uncurry3 CveWithPackage) .
         sortBy (compare `on` cveId . fst3) .
@@ -262,15 +258,14 @@ renderMarkdown vulns mts outPath = do
     Left e -> do
       putText $ "Rendering failed: " <> toS e
       liftIO exitFailure
-    Right out -> liftIO $ Bytes.writeFile (toS outPath) (toS out)
+    Right out -> putText . toS $ out
 
 renderJSON ::
      (ToJSON a, MonadIO m)
   => [(Package, Set (Cve a))]
   -> HashMap Text Maintainer
-  -> FilePath
   -> m ()
-renderJSON vulns mts outPath = do
+renderJSON vulns mts = do
   let cves' =
         map (uncurry3 CveWithPackage) .
         sortBy (compare `on` cveId . fst3) .
@@ -279,4 +274,4 @@ renderJSON vulns mts outPath = do
               map (\cve -> (cve, p, findMaintersForPackage p mts)) cves) .
            second Set.toAscList) $
         vulns
-  liftIO $ Bytes.writeFile (toS outPath) (toS . encode $ cves')
+  putText . toS . encode $ cves'

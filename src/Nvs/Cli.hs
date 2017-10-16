@@ -54,7 +54,6 @@ run opts =
           (map toS (optsNvdFeeds opts))
           (toS tmpDir <> "/packages.json")
           (toS tmpDir <> "/maintainers.json")
-          (toS (optsOutPath opts))
           (optsOutput opts)
           (optsMatching opts)
     case ret of
