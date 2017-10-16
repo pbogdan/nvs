@@ -43,7 +43,8 @@ parseOptions =
           "Path to a copy of the NVD JSON feed. May be specified multiple times.")) <*>
   (toS <$>
    strOption
-     (long "nixpkgs" <> metavar "nixpkgs" <> help "Path to nixpkgs checkout.")) <*>
+     (long "nixpkgs" <> metavar "nixpkgs" <>
+      help "Path to nixpkgs, accepts paths compatible with NIX_PATH.")) <*>
   asum
     [ flag' HTML (long "html" <> help "Render HTML.")
     , flag' Markdown (long "markdown" <> help "Render Markdown.")

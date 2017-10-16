@@ -1,8 +1,8 @@
 # nixpkgs vulnerability scanner
 
-nvs is a tool working against a local [nixpkgs](https://github.com/NixOS/nixpkgs) checkout to scan for potentially present vulnerabilities published in [National Vulnerability Database](https://nvd.nist.gov/).
+`nvs` is a tool to scan [nixpkgs](https://github.com/NixOS/nixpkgs) collection for potentially present vulnerabilities published in [National Vulnerability Database](https://nvd.nist.gov/).
 
-nvs is in an early stage of development, as such the results it produces may not be 100% accurate. As it internally relies on `nix-env` to query the available packages is it subject to its limitations.
+`nvs` is in an early stage of development, as such the results it produces may not be 100% accurate. As it internally relies on `nix-env` to query the available packages is it subject to its limitations.
 
 ## Installation
 
@@ -19,15 +19,7 @@ $ nix-env -i ./result
 
 ### Prerequisites
 
-nvs requires:
-
-1. A local nixpkgs checkout:
-
-    ```
-    $ git clone https://github.com/NixOS/nixpkgs
-    # switch to the desired branch as required
-    ```
-2. A copy of the JSON feed published by NVD, the feed can be obtained from https://nvd.nist.gov/vuln/data-feeds#JSON_FEED
+`nvs` requires a copy of the JSON feed published by NVD, the feed can be obtained from https://nvd.nist.gov/vuln/data-feeds#JSON_FEED
 
 ### Using nvs
 
@@ -42,7 +34,8 @@ Available options:
   -h,--help                Show this help text
   --nvd-feed nvd-feed      Path to a copy of the NVD JSON feed. May be specified
                            multiple times.
-  --nixpkgs nixpkgs        Path to nixpkgs checkout.
+  --nixpkgs nixpkgs        Path to nixpkgs, accepts paths compatible with
+                           NIX_PATH.
   --html                   Render HTML.
   --markdown               Render Markdown.
   --json                   Render JSON.
@@ -57,6 +50,8 @@ $ nvs --nvd-feed /home/pbogdan/nvdcve-1.0-2017.json --nixpkgs /home/pbogdan/nixp
 ```
 
 will produce an HTML report on stdout.
+
+`nvs` can be pointed at a remote `nixpkgs` collection, for example with `--nixpkgs https://nixos.org/channels/nixos-unstable/nixexprs.tar.xz`.
 
 #### Managing vulnerabilites exclusions
 
