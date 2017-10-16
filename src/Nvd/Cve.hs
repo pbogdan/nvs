@@ -23,13 +23,9 @@ module Nvd.Cve
   , displayCveId
   , Severity(..)
   , Cve(..)
-  , VendorData(..)
-  , VendorProduct(..)
-  , cveProducts
   , parseCves
   , cvesByPackage
   , cvesForPackage
-  , vulnsFor
   , vulnsFor'
   ) where
 
@@ -142,13 +138,6 @@ parseCveCommon (Object o) = do
     pure severity
 parseCveCommon x = typeMismatch "parseCveCommon" x
 
-instance FromJSON (Cve VendorData) where
-  parseJSON js@(Object o) = do
-    let cve = o .: "cve"
-    parseCveCommon js <*>
-      (cve >>= (.: "affects") >>= (.: "vendor") >>= (.: "vendor_data"))
-  parseJSON _ = mzero
-
 instance ToJSON a => ToJSON (Cve a) where
   toJSON = genericToJSON $ aesonDrop (length ("Cve" :: String)) camelCase
 
@@ -156,61 +145,6 @@ instance FromJSON (Cve CpeConfiguration) where
   parseJSON js@(Object o) =
     parseCveCommon js <*> ((o .: "configurations") >>= (.: "nodes"))
   parseJSON _ = mzero
-
--- | Name and list of vendor's products.
-data VendorData = VendorData
-  { vendorName :: Text -- ^ The name of the vendor.
-  , vendorProduct :: [VendorProduct] -- ^ List of vendor's products.
-  } deriving (Eq, Generic, Ord, Show)
-
-instance Affects VendorData where
-  packages = map vendorProductName . vendorProduct
-  isAffected x p =
-    let products = vendorProduct x
-        items =
-          concatMap
-            (\y -> zip (repeat . vendorProductName $ y) (vendorProductVersion y))
-            products
-    in p `elem` items
-
-cveProducts :: Cve VendorData -> [(PackageName, PackageVersion)]
-cveProducts cve =
-  let affected = cveAffects cve
-      products = concatMap vendorProduct affected
-  in concatMap
-       (\p -> zip (repeat . vendorProductName $ p) (vendorProductVersion p))
-       products
-
-instance FromJSON VendorData where
-  parseJSON (Object o) =
-    VendorData <$> o .: "vendor_name" <*>
-    (o .: "product" >>= (.: "product_data"))
-  parseJSON _ = mzero
-
-instance ToJSON VendorData where
-  toJSON = genericToJSON $ aesonDrop (length ("VendorData" :: String)) camelCase
-
--- | Description of a vendor's product, including its name and a list of
--- versions.
-data VendorProduct = VendorProduct
-  { vendorProductName :: PackageName -- ^ Name of the product.
-  , vendorProductVersion :: [PackageVersion] -- ^ List of product versions.
-  } deriving (Eq, Generic, Ord, Show)
-
-instance FromJSON VendorProduct where
-  parseJSON (Object o) = do
-    meh <- o .: "version" >>= (.: "version_data")
-    vers <-
-      Vec.forM meh $ \x ->
-        case x of
-          Object o' -> o' .: "version_value"
-          _ -> fail "version_data must be a list of objects"
-    VendorProduct <$> o .: "product_name" <*> (pure . Vec.toList $ vers)
-  parseJSON _ = mzero
-
-instance ToJSON VendorProduct where
-  toJSON =
-    genericToJSON $ aesonDrop (length ("VendorProduct" :: String)) camelCase
 
 preParse :: (MonadIO m, MonadError NvsError m, FromJSON a) => FilePath -> m a
 preParse path = do

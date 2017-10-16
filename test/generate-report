@@ -5,7 +5,6 @@
 set -e
 
 ./result/bin/nvs \
-    --cpe \
     --nixpkgs https://nixos.org/channels/$1/nixexprs.tar.xz \
     --markdown --verbose \
     --nvd-feed <(wget https://static.nvd.nist.gov/feeds/json/cve/1.0/nvdcve-1.0-2017.json.gz -q -o /dev/null -O - | gunzip) \

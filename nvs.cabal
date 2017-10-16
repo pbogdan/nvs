@@ -94,6 +94,5 @@ test-suite nvs-test
     default-extensions: OverloadedStrings NoImplicitPrelude
     hs-source-dirs: test
     other-modules:
-        CveSpec
         PackagesSpec
     ghc-options: -Wall -threaded -rtsopts -with-rtsopts=-N

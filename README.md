@@ -39,7 +39,6 @@ Available options:
   --html                   Render HTML.
   --markdown               Render Markdown.
   --json                   Render JSON.
-  --cpe                    use CPE matching mode.
   --verbose                Verbose output.
 ```
 

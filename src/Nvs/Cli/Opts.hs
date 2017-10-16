@@ -27,7 +27,6 @@ data Opts = Opts
   { optsNvdFeeds :: [Text]
   , optsNixpkgs :: Text
   , optsOutput :: Output
-  , optsMatching :: Matching
   , optsVerbose :: Bool
   } deriving (Eq, Show)
 
@@ -50,7 +49,6 @@ parseOptions =
     , flag' Markdown (long "markdown" <> help "Render Markdown.")
     , flag' JSON (long "json" <> help "Render JSON.")
     ] <*>
-  flag Simple Cpe (long "cpe" <> help "use CPE matching mode.") <*>
   switch (long "verbose" <> help "Verbose output.")
 
 -- | Convenience function to add @--help@ support given a parser and

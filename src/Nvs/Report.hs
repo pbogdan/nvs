@@ -14,12 +14,10 @@ Report rendering utilities.
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE UndecidableInstances #-}
 
 module Nvs.Report
   ( Output(..)
-  , Matching(..)
   , report
   ) where
 
@@ -60,11 +58,6 @@ data Output
   | Markdown
   deriving (Eq, Show)
 
-data Matching
-  = Simple
-  | Cpe
-  deriving (Eq, Show)
-
 data CveWithPackage a = CveWithPackage
   { _cveWithPackageCve :: Cve a
   , _cveWithPackagePackage :: Package
@@ -74,13 +67,6 @@ data CveWithPackage a = CveWithPackage
 instance ToJSON (Cve a) => ToJSON (CveWithPackage a) where
   toJSON =
     genericToJSON $ aesonDrop (length ("_CveWithPackage" :: String)) camelCase
-
-dropNvdExcludes ::
-     Excludes -> HashMap k (Set (Cve a)) -> HashMap k (Set (Cve a))
-dropNvdExcludes es =
-  let toDrop = Set.fromList . nvdExcludes $ es
-  in HashMap.filter (not . Set.null) .
-     HashMap.map (Set.filter ((`Set.notMember` toDrop) . cveId))
 
 -- | Produce a human readable report about CVEs that may be present in the given
 -- package set.
@@ -93,45 +79,30 @@ report ::
   -> FilePath -- ^ path to packages.json file
   -> FilePath -- ^ path to maintainers.json file
   -> Output -- ^ what type of output to generate
-  -> Matching
   -> m ()
-report cvePaths pkgsPath mtsPath mode matchMode = do
+report cvePaths pkgsPath mtsPath mode = do
   logInfoN "Parsing excludes"
   es <- parseExcludes =<< findFile "data/vuln-excludes.yaml"
   logInfoN "Parsing NVD feed"
-  logInfoN "Parsing packages"
   pkgs <- parsePackages pkgsPath
   logInfoN "Parsing maintainers"
   mts <- parseMaintainers mtsPath
   logInfoN "Parsing aliases"
   aliases <- parseAliases =<< findFile "data/package-aliases.yaml"
-  case matchMode of
-    Simple -> do
-      vulns <-
-        mconcat <$>
-        for
-          cvePaths
-          (\path ->
-             (dropNvdExcludes es <$> parseCves path) >>= \cves ->
-               return (vulnsFor @VendorData pkgs aliases cves))
-      case mode of
-        HTML -> renderHTML vulns mts
-        Markdown -> renderMarkdown vulns mts
-        JSON -> renderJSON vulns mts
-    Cpe -> do
-      let parser = "CVE_Items" .: arrayOf value :: Parser (Cve CpeConfiguration)
-          go path =
-            Stream.readFile path & Stream.streamParse parser & void &
-            Stream.filter (\cve -> cveId cve `notElem` nvdExcludes es) &
-            Stream.map (\cve -> vulnsFor' cve pkgs aliases) &
-            Stream.filter (not . null . filter (not . Set.null . snd)) &
-            Stream.mconcat_
-      vulns <-
-        mconcat <$> liftIO (forConcurrently cvePaths (Stream.runResourceT . go))
-      case mode of
-        HTML -> renderHTML vulns mts
-        Markdown -> renderMarkdown vulns mts
-        JSON -> renderJSON vulns mts
+  let parser = "CVE_Items" .: arrayOf value :: Parser (Cve CpeConfiguration)
+      go path =
+        Stream.readFile path & Stream.streamParse parser & void &
+        Stream.filter (\cve -> cveId cve `notElem` nvdExcludes es) &
+        Stream.map (\cve -> vulnsFor' cve pkgs aliases) &
+        Stream.filter (not . null . filter (not . Set.null . snd)) &
+        Stream.mconcat_
+  logInfoN "Parsing packages"
+  vulns <-
+    mconcat <$> liftIO (forConcurrently cvePaths (Stream.runResourceT . go))
+  case mode of
+    HTML -> renderHTML vulns mts
+    Markdown -> renderMarkdown vulns mts
+    JSON -> renderJSON vulns mts
 
 renderHTML ::
      MonadIO m
