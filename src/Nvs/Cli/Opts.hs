@@ -28,7 +28,6 @@ data Opts = Opts
   , optsNixpkgs :: Text
   , optsOutput :: Output
   , optsMatching :: Matching
-  , optsOutPath :: Text
   , optsVerbose :: Bool
   } deriving (Eq, Show)
 
@@ -51,8 +50,6 @@ parseOptions =
     , flag' JSON (long "json" <> help "Render JSON.")
     ] <*>
   flag Simple Cpe (long "cpe" <> help "use CPE matching mode.") <*>
-  (toS <$>
-   argument str (metavar "file" <> help "Output path for the generated report.")) <*>
   switch (long "verbose" <> help "Verbose output.")
 
 -- | Convenience function to add @--help@ support given a parser and

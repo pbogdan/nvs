@@ -35,7 +35,7 @@ Available command line options:
 
 ```
 Usage: nvs --nvd-feed nvd-feed --nixpkgs nixpkgs (--html | --markdown | --json)
-           [--cpe] file [--verbose]
+           [--cpe] [--verbose]
   Experimental CVE scanner for nixpkgs
 
 Available options:
@@ -47,17 +47,16 @@ Available options:
   --markdown               Render Markdown.
   --json                   Render JSON.
   --cpe                    use CPE matching mode.
-  file                     Output path for the generated report.
   --verbose                Verbose output.
 ```
 
 Example invocation:
 
 ```
-$ nvs --nvd-feed /home/pbogdan/nvdcve-1.0-2017.json --nixpkgs /home/pbogdan/nixpkgs --html report.html
+$ nvs --nvd-feed /home/pbogdan/nvdcve-1.0-2017.json --nixpkgs /home/pbogdan/nixpkgs --html
 ```
 
-will produce an HTML report in the current directory. 
+will produce an HTML report on stdout.
 
 #### Managing vulnerabilites exclusions
 
