@@ -111,7 +111,7 @@ cpeTermsPackages = catMaybes . foldr go []
     go :: Payload Cpe "cpe" -> [Maybe PackageName] -> [Maybe PackageName]
     go (Payload cpe) acc = (cpeUriPackageName . cpeCpeUri $ cpe) : acc
 
-type CpeConfiguration = Configuration (Terms (Payload Cpe "cpe"))
+type CpeConfiguration = Configuration CpeTerms
 
 instance Affects CpeConfiguration where
   packages = foldMap cpeTermsPackages
@@ -120,7 +120,7 @@ instance Affects CpeConfiguration where
 runCpeQueries ::
      b
   -> (b -> Payload Cpe "cpe" -> Bool)
-  -> Configuration (Terms (Payload Cpe "cpe"))
+  -> CpeConfiguration
   -> Configuration Bool
 runCpeQueries x f c = runIdentity $ for c $ Identity . queryTerms x f
 
@@ -135,7 +135,7 @@ collapse (Branch op xs) =
 queryCpeConfiguration ::
      b
   -> (b -> Cpe -> Bool)
-  -> Configuration (Terms (Payload Cpe "cpe"))
+  -> CpeConfiguration
   -> Bool
 queryCpeConfiguration x f =
   collapse . runCpeQueries x (\b (Payload cpe) -> f b cpe)
