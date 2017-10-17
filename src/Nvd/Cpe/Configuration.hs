@@ -1,20 +1,13 @@
-{-# LANGUAGE DataKinds #-}
 {-# LANGUAGE DeriveFoldable #-}
 {-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DeriveTraversable #-}
 {-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE GADTs #-}
-{-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE StandaloneDeriving #-}
-{-# LANGUAGE TypeFamilies #-}
 
 module Nvd.Cpe.Configuration
   ( Op(..)
   , Terms(..)
-  , Payload(..)
-  , PayloadKey
   , Configuration(..)
   , CpeConfiguration
   ) where
@@ -26,7 +19,6 @@ import           Data.Aeson.Types (typeMismatch)
 import           Data.List (nub)
 import           Data.List.NonEmpty (NonEmpty)
 import qualified Data.List.NonEmpty as NE
-import           GHC.TypeLits
 import           Nixpkgs.Packages.Types
 import           Nixpkgs.Packages.Versions
 import           Nvd.Cpe
@@ -56,32 +48,15 @@ queryTerms y f (Terms op xs) =
        And -> getAll . foldMap All $ ys
        Or -> getAny . foldMap Any $ ys
 
-type family PayloadKey (a :: *) :: Symbol where
-  PayloadKey Cpe = "cpe"
-
-data Payload a (s :: Symbol) where
-  Payload :: a -> Payload a (PayloadKey a)
-
-deriving instance Show a => Show (Payload a s)
-deriving instance Eq a => Eq (Payload a s)
-deriving instance Ord a => Ord (Payload a s)
-
-instance (s ~ PayloadKey a, KnownSymbol s, FromJSON a) =>
-         FromJSON (Payload a s) where
-  parseJSON js@(Object _) = Payload <$> parseJSON js
-  parseJSON x = typeMismatch "Payload" x
-
-instance (s ~ PayloadKey a, KnownSymbol s, FromJSON a) =>
-         FromJSON (Terms (Payload a s)) where
+instance FromJSON (Terms Cpe) where
   parseJSON (Object o) =
-    let prefix = toS (symbolVal (Proxy :: Proxy s))
-    in Terms <$> o .: "operator" <*>
-       (o .:? prefix >>= \x -> do
-          y <- sequenceA $ parseJSON <$> x
-          return . fromMaybe [] $ y)
+    Terms <$> o .: "operator" <*>
+    (o .:? "cpe" >>= \x -> do
+       y <- sequenceA $ parseJSON <$> x
+       return . fromMaybe [] $ y)
   parseJSON x = typeMismatch "Terms" x
 
-instance ToJSON (Terms (Payload a s)) where
+instance ToJSON (Terms Cpe) where
   toJSON _ = object []
 
 data Configuration a
@@ -103,13 +78,13 @@ instance FromJSON a => FromJSON (Configuration a) where
 
 instance ToJSON a => ToJSON (Configuration a) where
 
-type CpeTerms = Terms (Payload Cpe "cpe")
+type CpeTerms = Terms Cpe
 
 cpeTermsPackages :: CpeTerms -> [PackageName]
 cpeTermsPackages = catMaybes . foldr go []
   where
-    go :: Payload Cpe "cpe" -> [Maybe PackageName] -> [Maybe PackageName]
-    go (Payload cpe) acc = (cpeUriPackageName . cpeCpeUri $ cpe) : acc
+    go :: Cpe -> [Maybe PackageName] -> [Maybe PackageName]
+    go cpe acc = (cpeUriPackageName . cpeCpeUri $ cpe) : acc
 
 type CpeConfiguration = Configuration CpeTerms
 
@@ -118,10 +93,7 @@ instance Affects CpeConfiguration where
   isAffected = flip cpeConfigurationMatch
 
 runCpeQueries ::
-     b
-  -> (b -> Payload Cpe "cpe" -> Bool)
-  -> CpeConfiguration
-  -> Configuration Bool
+     b -> (b -> Cpe -> Bool) -> CpeConfiguration -> Configuration Bool
 runCpeQueries x f c = runIdentity $ for c $ Identity . queryTerms x f
 
 collapse :: Configuration Bool -> Bool
@@ -137,8 +109,7 @@ queryCpeConfiguration ::
   -> (b -> Cpe -> Bool)
   -> CpeConfiguration
   -> Bool
-queryCpeConfiguration x f =
-  collapse . runCpeQueries x (\b (Payload cpe) -> f b cpe)
+queryCpeConfiguration x f = collapse . runCpeQueries x f
 
 cpeConfigurationMatch ::
      (PackageName, PackageVersion) -> CpeConfiguration -> Bool
@@ -165,17 +136,15 @@ isReleaseSeries = getAll . foldMap goCfg
     goCfg terms =
       foldMap goTerms terms <> All (sameNames terms) <>
       All ((length . allNames $ terms) > 1)
-    goTerms :: Payload Cpe "cpe" -> All
-    goTerms (Payload cpe) =
+    goTerms :: Cpe -> All
+    goTerms cpe =
       let previousVersions = fromMaybe False (cpePreviousVersions cpe)
       in All previousVersions
 
 allNames :: CpeTerms -> [PackageName]
 allNames =
   catMaybes .
-  foldr
-    (\(Payload cpe) acc -> (cpeUriPackageName . cpeCpeUri $ cpe) : acc)
-    mempty
+  foldr (\cpe acc -> (cpeUriPackageName . cpeCpeUri $ cpe) : acc) mempty
 
 sameNames :: CpeTerms -> Bool
 sameNames terms = (length . nub $ allNames terms) == 1
@@ -183,9 +152,7 @@ sameNames terms = (length . nub $ allNames terms) == 1
 allVersions :: CpeTerms -> [PackageVersion]
 allVersions =
   catMaybes .
-  foldr
-    (\(Payload cpe) acc -> (cpeUriPackageVersion . cpeCpeUri $ cpe) : acc)
-    mempty
+  foldr (\cpe acc -> (cpeUriPackageVersion . cpeCpeUri $ cpe) : acc) mempty
 
 seriesMatch :: (PackageName, PackageVersion) -> CpeConfiguration -> Bool
 seriesMatch pkg@(_, version) cfg =
