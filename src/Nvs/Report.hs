@@ -83,7 +83,7 @@ report ::
 report cvePaths pkgsPath mtsPath mode = do
   logInfoN "Parsing excludes"
   es <- parseExcludes =<< findFile "data/vuln-excludes.yaml"
-  logInfoN "Parsing NVD feed"
+  logInfoN "Parsing packages"
   pkgs <- parsePackages pkgsPath
   logInfoN "Parsing maintainers"
   mts <- parseMaintainers mtsPath
@@ -96,7 +96,7 @@ report cvePaths pkgsPath mtsPath mode = do
         Stream.map (\cve -> vulnsFor' cve pkgs aliases) &
         Stream.filter (not . null . filter (not . Set.null . snd)) &
         Stream.mconcat_
-  logInfoN "Parsing packages"
+  logInfoN "Processing the feeds"
   vulns <-
     mconcat <$> liftIO (forConcurrently cvePaths (Stream.runResourceT . go))
   case mode of
