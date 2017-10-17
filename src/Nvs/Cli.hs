@@ -55,7 +55,6 @@ run opts =
           (toS tmpDir <> "/packages.json")
           (toS tmpDir <> "/maintainers.json")
           (optsOutput opts)
-          (optsMatching opts)
     case ret of
       Left (ShellCommandError _ msg) -> do
         logErrorN $ "Shell command failed: " <> show msg
