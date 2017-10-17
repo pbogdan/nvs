@@ -80,18 +80,19 @@ type family SegmentIndex (a :: *) :: Nat where
 
 parseCpeUri :: Text -> Either Text CpeUri
 parseCpeUri s =
-  CpeUri <$> parseCpePart s <*> parseCpeValue (Proxy :: Proxy 3) s <*>
-  parseCpeValue (Proxy :: Proxy 4) s <*>
-  parseCpeValue (Proxy :: Proxy 5) s
+  let parts = Text.splitOn ":" s
+  in CpeUri <$> parseCpePart parts <*> parseCpeValue (Proxy :: Proxy 3) parts <*>
+     parseCpeValue (Proxy :: Proxy 4) parts <*>
+     parseCpeValue (Proxy :: Proxy 5) parts
 
 parseCpeValue ::
      (KnownNat b, b ~ SegmentIndex a)
   => proxy b
-  -> Text
+  -> [Text]
   -> Either Text (CpeValue a)
-parseCpeValue p s =
+parseCpeValue p parts =
   let index = natVal p
-  in cpeUriSegment (fromIntegral index) s >>= parse
+  in cpeUriSegment (fromIntegral index) parts >>= parse
   where
     parse s' =
       case s' of
@@ -99,17 +100,16 @@ parseCpeValue p s =
         "-" -> Right NA
         _ -> Right . CpeValue $ s'
 
-cpeUriSegment :: Int -> Text -> Either Text Text
-cpeUriSegment i s =
-  let parts = Text.splitOn ":" s
-      item = head . drop i $ parts
+cpeUriSegment :: Int -> [Text] -> Either Text Text
+cpeUriSegment i parts =
+  let item = head . drop i $ parts
   in case item of
-       Nothing -> Left $ "Segment " <> show i <> " doesn't exist in " <> s
+       Nothing -> Left $ "Segment " <> show i <> " doesn't exist"
        Just x -> Right x
 
-parseCpePart :: Text -> Either Text CpePart
-parseCpePart s =
-  case cpeUriSegment 2 s of
+parseCpePart :: [Text] -> Either Text CpePart
+parseCpePart parts =
+  case cpeUriSegment 2 parts of
     Right "a" -> Right Application
     Right "o" -> Right OS
     Right "h" -> Right Hardware
