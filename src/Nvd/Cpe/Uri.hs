@@ -30,40 +30,19 @@ data CpePart
   | Unknown
   deriving (Eq, Ord, Show)
 
-data CpeValue a b
+data CpeValue a
   = Any
   | NA
-  | CpeValue b
+  | CpeValue Text
   deriving (Eq, Generic, Ord, Show)
 
-instance Monoid b => Monoid (CpeValue a b) where
-  mempty = CpeValue mempty
-  (CpeValue a) `mappend` (CpeValue b) = CpeValue (a `mappend` b)
-  Any `mappend` _ = Any
-  NA `mappend` _ = NA
-  a@(CpeValue _) `mappend` NA = a
-  a@(CpeValue _) `mappend` Any = a
-
-instance Functor (CpeValue a) where
-  fmap _ Any = Any
-  fmap _ NA = NA
-  fmap f (CpeValue a) = CpeValue (f a)
-
-instance Applicative (CpeValue a) where
-  pure = CpeValue
-  (CpeValue f) <*> (CpeValue a) = CpeValue (f a)
-  Any <*> _ = Any
-  NA <*> _ = NA
-  (CpeValue _) <*> Any = Any
-  (CpeValue _) <*> NA = NA
-
-instance (ToJSON a, ToJSON b) => ToJSON (CpeValue a b)
+instance (ToJSON a) => ToJSON (CpeValue a)
 
 data CpeUri = CpeUri
   { cpePart :: CpePart
-  , cpeVendor :: CpeValue (Segment Vendor 3) Text
-  , cpeProduct :: CpeValue (Segment Product 4) Text
-  , cpeVersion :: CpeValue (Segment Version 5) Text
+  , cpeVendor :: CpeValue Vendor
+  , cpeProduct :: CpeValue Product
+  , cpeVersion :: CpeValue Version
   } deriving (Eq, Generic, Show)
 
 instance Ord CpeUri where
@@ -99,9 +78,6 @@ type family SegmentIndex (a :: *) :: Nat where
   SegmentIndex TargetHw = 11
   SegmentIndex Other = 12
 
-data Segment a (b :: Nat) where
-  Segment :: a -> Segment a (SegmentIndex a)
-
 parseCpeUri :: Text -> Either Text CpeUri
 parseCpeUri s =
   CpeUri <$> parseCpePart s <*> parseCpeValue (Proxy :: Proxy 3) s <*>
@@ -112,7 +88,7 @@ parseCpeValue ::
      (KnownNat b, b ~ SegmentIndex a)
   => proxy b
   -> Text
-  -> Either Text (CpeValue (Segment a b) Text)
+  -> Either Text (CpeValue a)
 parseCpeValue p s =
   let index = natVal p
   in cpeUriSegment (fromIntegral index) s >>= parse
