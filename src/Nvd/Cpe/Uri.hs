@@ -30,40 +30,19 @@ data CpePart
   | Unknown
   deriving (Eq, Ord, Show)
 
-data CpeValue a b
+data CpeValue a
   = Any
   | NA
-  | CpeValue b
+  | CpeValue Text
   deriving (Eq, Generic, Ord, Show)
 
-instance Monoid b => Monoid (CpeValue a b) where
-  mempty = CpeValue mempty
-  (CpeValue a) `mappend` (CpeValue b) = CpeValue (a `mappend` b)
-  Any `mappend` _ = Any
-  NA `mappend` _ = NA
-  a@(CpeValue _) `mappend` NA = a
-  a@(CpeValue _) `mappend` Any = a
-
-instance Functor (CpeValue a) where
-  fmap _ Any = Any
-  fmap _ NA = NA
-  fmap f (CpeValue a) = CpeValue (f a)
-
-instance Applicative (CpeValue a) where
-  pure = CpeValue
-  (CpeValue f) <*> (CpeValue a) = CpeValue (f a)
-  Any <*> _ = Any
-  NA <*> _ = NA
-  (CpeValue _) <*> Any = Any
-  (CpeValue _) <*> NA = NA
-
-instance (ToJSON a, ToJSON b) => ToJSON (CpeValue a b)
+instance (ToJSON a) => ToJSON (CpeValue a)
 
 data CpeUri = CpeUri
   { cpePart :: CpePart
-  , cpeVendor :: CpeValue (Segment Vendor 3) Text
-  , cpeProduct :: CpeValue (Segment Product 4) Text
-  , cpeVersion :: CpeValue (Segment Version 5) Text
+  , cpeVendor :: CpeValue Vendor
+  , cpeProduct :: CpeValue Product
+  , cpeVersion :: CpeValue Version
   } deriving (Eq, Generic, Show)
 
 instance Ord CpeUri where
@@ -99,23 +78,21 @@ type family SegmentIndex (a :: *) :: Nat where
   SegmentIndex TargetHw = 11
   SegmentIndex Other = 12
 
-data Segment a (b :: Nat) where
-  Segment :: a -> Segment a (SegmentIndex a)
-
 parseCpeUri :: Text -> Either Text CpeUri
 parseCpeUri s =
-  CpeUri <$> parseCpePart s <*> parseCpeValue (Proxy :: Proxy 3) s <*>
-  parseCpeValue (Proxy :: Proxy 4) s <*>
-  parseCpeValue (Proxy :: Proxy 5) s
+  let parts = Text.splitOn ":" s
+  in CpeUri <$> parseCpePart parts <*> parseCpeValue (Proxy :: Proxy 3) parts <*>
+     parseCpeValue (Proxy :: Proxy 4) parts <*>
+     parseCpeValue (Proxy :: Proxy 5) parts
 
 parseCpeValue ::
      (KnownNat b, b ~ SegmentIndex a)
   => proxy b
-  -> Text
-  -> Either Text (CpeValue (Segment a b) Text)
-parseCpeValue p s =
+  -> [Text]
+  -> Either Text (CpeValue a)
+parseCpeValue p parts =
   let index = natVal p
-  in cpeUriSegment (fromIntegral index) s >>= parse
+  in cpeUriSegment (fromIntegral index) parts >>= parse
   where
     parse s' =
       case s' of
@@ -123,17 +100,16 @@ parseCpeValue p s =
         "-" -> Right NA
         _ -> Right . CpeValue $ s'
 
-cpeUriSegment :: Int -> Text -> Either Text Text
-cpeUriSegment i s =
-  let parts = Text.splitOn ":" s
-      item = head . drop i $ parts
+cpeUriSegment :: Int -> [Text] -> Either Text Text
+cpeUriSegment i parts =
+  let item = head . drop i $ parts
   in case item of
-       Nothing -> Left $ "Segment " <> show i <> " doesn't exist in " <> s
+       Nothing -> Left $ "Segment " <> show i <> " doesn't exist"
        Just x -> Right x
 
-parseCpePart :: Text -> Either Text CpePart
-parseCpePart s =
-  case cpeUriSegment 2 s of
+parseCpePart :: [Text] -> Either Text CpePart
+parseCpePart parts =
+  case cpeUriSegment 2 parts of
     Right "a" -> Right Application
     Right "o" -> Right OS
     Right "h" -> Right Hardware

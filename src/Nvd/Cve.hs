@@ -23,9 +23,6 @@ module Nvd.Cve
   , displayCveId
   , Severity(..)
   , Cve(..)
-  , parseCves
-  , cvesByPackage
-  , cvesForPackage
   , vulnsFor'
   ) where
 
@@ -35,21 +32,18 @@ import           Control.Monad
 import           Data.Aeson
 import           Data.Aeson.Casing
 import           Data.Aeson.Types
-import qualified Data.ByteString as Bytes
 import           Data.HashMap.Strict (HashMap)
 import qualified Data.HashMap.Strict as HashMap
 import           Data.Set (Set)
 import qualified Data.Set as Set
 import           Data.String (String, IsString(..))
 import qualified Data.Text as Text
-import           Data.Vector (Vector)
 import qualified Data.Vector as Vec
 import           Nixpkgs.Packages
 import           Nixpkgs.Packages.Aliases
 import           Nixpkgs.Packages.Types
 import           Nvd.Cpe.Configuration
 import           Nvd.Cve.Types
-import           Nvs.Types
 import           Text.Read (read)
 
 -- @TODO: there should be validation of the CVE ID format
@@ -145,42 +139,6 @@ instance FromJSON (Cve CpeConfiguration) where
   parseJSON js@(Object o) =
     parseCveCommon js <*> ((o .: "configurations") >>= (.: "nodes"))
   parseJSON _ = mzero
-
-preParse :: (MonadIO m, MonadError NvsError m, FromJSON a) => FilePath -> m a
-preParse path = do
-  s <- liftIO . Bytes.readFile $ path
-  let parser = withObject "cves" $ \o -> o .: "CVE_Items" >>= parseJSON
-  let mRet = join (parseEither parser <$> eitherDecodeStrict s)
-  either (throwError . FileParseError path . toS) return mRet
-
--- | Utility function for parsing CVE information out of NVD JSON feed.
-parseCves ::
-     (Affects a, FromJSON (Cve a), Ord a, MonadError NvsError m, MonadIO m)
-  => FilePath -- ^ Path to the NVD JSON feed file
-  -> m (HashMap PackageName (Set (Cve a)))
-parseCves path = do
-  pkgs <- preParse path
-  return . cvesByPackage $ pkgs
-
-cvesByPackage ::
-     (Ord a, Affects a) => Vector (Cve a) -> HashMap PackageName (Set (Cve a))
-cvesByPackage = foldl' go HashMap.empty
-  where
-    go ::
-         (Ord a, Affects a)
-      => HashMap PackageName (Set (Cve a))
-      -> Cve a
-      -> HashMap PackageName (Set (Cve a))
-    go acc cve =
-      let pkgs = concatMap packages cve
-          go' acc' x =
-            let current = HashMap.lookup x acc'
-                updated =
-                  case current of
-                    Nothing -> Set.singleton cve
-                    Just cves -> Set.insert cve cves
-            in HashMap.insert x updated acc'
-      in HashMap.unionWith Set.union (foldl' go' HashMap.empty pkgs) acc
 
 cvesForPackage ::
      (Affects (Cve a), Ord a)

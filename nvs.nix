@@ -1,10 +1,9 @@
-{ mkDerivation, aeson, aeson-casing, aeson-qq, attoparsec, base
-, bytestring, containers, directory, ede, hashable, hspec
-, json-stream, lucid, monad-logger, optparse-applicative, protolude
-, QuickCheck, quickcheck-instances, raw-strings-qq, shell-cmd
-, stdenv, streaming, streaming-bytestring, streaming-utils
-, temporary, text, transformers, unordered-containers, vector
-, versions, yaml
+{ mkDerivation, aeson, aeson-casing, aeson-qq, base, bytestring
+, containers, directory, ede, hashable, hspec, json-stream, lucid
+, monad-logger, optparse-applicative, protolude, QuickCheck
+, quickcheck-instances, shell-cmd, stdenv, streaming
+, streaming-bytestring, streaming-utils, temporary, text
+, transformers, unordered-containers, vector, versions, yaml
 }:
 mkDerivation {
   pname = "nvs";
@@ -13,11 +12,11 @@ mkDerivation {
   isLibrary = true;
   isExecutable = true;
   libraryHaskellDepends = [
-    aeson aeson-casing attoparsec base bytestring containers directory
-    ede hashable json-stream lucid monad-logger optparse-applicative
-    protolude raw-strings-qq shell-cmd streaming streaming-bytestring
-    streaming-utils temporary text transformers unordered-containers
-    vector versions yaml
+    aeson aeson-casing base bytestring containers directory ede
+    hashable json-stream lucid monad-logger optparse-applicative
+    protolude shell-cmd streaming streaming-bytestring streaming-utils
+    temporary text transformers unordered-containers vector versions
+    yaml
   ];
   executableHaskellDepends = [ base protolude ];
   testHaskellDepends = [
