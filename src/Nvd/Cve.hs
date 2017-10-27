@@ -38,6 +38,7 @@ import           Data.Set (Set)
 import qualified Data.Set as Set
 import           Data.String (String, IsString(..))
 import qualified Data.Text as Text
+import           Data.Time
 import qualified Data.Vector as Vec
 import           Nixpkgs.Packages
 import           Nixpkgs.Packages.Aliases
@@ -102,6 +103,7 @@ data Cve a = Cve
   { cveId :: CveId -- ^ The ID of the CVE such as CVE-2016-5253.
   , cveDescription :: Text -- ^ Description of the CVE.
   , cveSeverity :: Maybe Severity
+  , cvePublished :: UTCTime
   , cveAffects :: [a] -- ^ List of affected vendors and products.
   } deriving (Eq, Foldable, Functor, Generic, Ord, Show)
 
@@ -128,8 +130,11 @@ parseCveCommon (Object o) = do
       Just metrics ->
         (metrics .: "cvssV3" >>= (.: "baseSeverity")) <|>
         (metrics .: "severity")
+  published <-
+    parseTimeM True defaultTimeLocale "%Y-%m-%dT%H:%MZ" =<< o .: "publishedDate"
   Cve <$> (cve >>= (.: "CVE_data_meta") >>= (.: "ID")) <*> pure desc <*>
-    pure severity
+    pure severity <*>
+    pure published
 parseCveCommon x = typeMismatch "parseCveCommon" x
 
 instance ToJSON a => ToJSON (Cve a) where

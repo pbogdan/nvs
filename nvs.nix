@@ -2,7 +2,7 @@
 , containers, directory, ede, hashable, hspec, json-stream, lucid
 , monad-logger, optparse-applicative, protolude, QuickCheck
 , quickcheck-instances, shell-cmd, stdenv, streaming
-, streaming-bytestring, streaming-utils, temporary, text
+, streaming-bytestring, streaming-utils, temporary, text, time
 , transformers, unordered-containers, vector, versions, yaml
 }:
 mkDerivation {
@@ -15,8 +15,8 @@ mkDerivation {
     aeson aeson-casing base bytestring containers directory ede
     hashable json-stream lucid monad-logger optparse-applicative
     protolude shell-cmd streaming streaming-bytestring streaming-utils
-    temporary text transformers unordered-containers vector versions
-    yaml
+    temporary text time transformers unordered-containers vector
+    versions yaml
   ];
   executableHaskellDepends = [ base protolude ];
   testHaskellDepends = [
