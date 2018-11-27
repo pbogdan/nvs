@@ -30,7 +30,6 @@ import           Data.Aeson hiding ((.:))
 import           Data.Aeson.Casing
 import qualified Data.ByteString.Streaming as Stream (readFile)
 import qualified Data.ByteString.Streaming.Aeson as Stream
-import           Data.HashMap.Strict (HashMap)
 import qualified Data.HashMap.Strict as HashMap
 import           Data.JsonStream.Parser
 import           Data.Set (Set)
@@ -48,7 +47,6 @@ import           Nvd.Cve
 import           Nvs.Excludes
 import           Nvs.Files
 import           Nvs.Types
-import qualified Streaming as Stream
 import qualified Streaming.Prelude as Stream hiding (readFile)
 import           Text.EDE
 
@@ -79,16 +77,14 @@ report ::
      (MonadError NvsError m, MonadLogger m, MonadIO m)
   => [FilePath] -- ^ path to NVD JSON feed
   -> FilePath -- ^ path to packages.json file
-  -> FilePath -- ^ path to maintainers.json file
   -> Output -- ^ what type of output to generate
   -> m ()
-report cvePaths pkgsPath mtsPath mode = do
+report cvePaths pkgsPath mode = do
   logInfoN "Parsing excludes"
   es <- parseExcludes =<< findFile "data/vuln-excludes.yaml"
   logInfoN "Parsing packages"
   pkgs <- parsePackages pkgsPath
   logInfoN "Parsing maintainers"
-  mts <- parseMaintainers mtsPath
   logInfoN "Parsing aliases"
   aliases <- parseAliases =<< findFile "data/package-aliases.yaml"
   let parser = "CVE_Items" .: arrayOf value :: Parser (Cve CpeConfiguration)
@@ -102,9 +98,9 @@ report cvePaths pkgsPath mtsPath mode = do
   vulns <-
     mconcat <$> liftIO (forConcurrently cvePaths (runResourceT . go))
   case mode of
-    HTML -> renderHTML vulns mts
-    Markdown -> renderMarkdown vulns mts
-    JSON -> renderJSON vulns mts
+    HTML -> renderHTML vulns
+    Markdown -> renderMarkdown vulns
+    JSON -> renderJSON vulns
 
 lol :: [(Package, Set (Cve a))] -> [(Package, Cve a)]
 lol = concatMap (uncurry zip . first repeat . second Set.toAscList)
@@ -112,9 +108,8 @@ lol = concatMap (uncurry zip . first repeat . second Set.toAscList)
 renderHTML ::
      MonadIO m
   => [(Package, Set (Cve a))]
-  -> HashMap Text Maintainer
   -> m ()
-renderHTML vulns mts =
+renderHTML vulns =
   putText . toS . renderText $ do
     doctype_
     head_ $ do
@@ -165,9 +160,8 @@ renderHTML vulns mts =
                 td_ $ do
                   p_ $ b_ "Package maintainers:"
                   ul_ $
-                    for_ (packageMetaMaintainers . packageMeta $ pkg) $ \maintainers ->
-                      for_ maintainers $ \maintainer ->
-                        li_ (renderMaintainer maintainer mts)
+                    for_ (packageMetaMaintainers . packageMeta $ pkg) $ \maintainer ->
+                      li_ (renderMaintainer maintainer)
                 td_ [] ""
 
 renderSeverity :: Monad m => Maybe Severity -> HtmlT m ()
@@ -188,22 +182,17 @@ renderSeverity severity =
           Just Critical -> "Critical"
   in span_ [classes_ ["label", label]] (toHtml text)
 
-renderMaintainer :: Monad m => Text -> HashMap Text Maintainer -> HtmlT m ()
-renderMaintainer mt mts =
-  let mMt = findMaintainer mt mts
-  in case mMt of
-       Nothing -> toHtml mt
-       Just mt' ->
-         toHtml (maintainerName mt') <> toHtml (" " :: Text) <>
-         toHtml ("<" :: Text) <>
-         a_
-           [href_ ("mailto:" <> maintainerEmail mt')]
-           (toHtml (maintainerEmail mt')) <>
-         toHtml (">" :: Text) <>
-         toHtml (" " :: Text) <>
-         a_
-           [href_ ("https://github.com/" <> maintainerHandle mt')]
-           (toHtml ("@" <> maintainerHandle mt'))
+renderMaintainer :: Monad m => Maintainer -> HtmlT m ()
+renderMaintainer mt =
+  toHtml (maintainerName mt) <> toHtml (" " :: Text) <> toHtml ("<" :: Text) <>
+  a_ [href_ ("mailto:" <> maintainerEmail mt)] (toHtml (maintainerEmail mt)) <>
+  toHtml (">" :: Text) <>
+  toHtml (" " :: Text) <>
+  a_
+    [ href_
+        ("https://github.com/" <> (fromMaybe "unknown" . maintainerGithub $ mt))
+    ]
+    (toHtml ("@" <> (fromMaybe "unknown" . maintainerGithub $ mt)))
 
 fst3 :: (a, b, c) -> a
 fst3 (a, _, _) = a
@@ -214,15 +203,16 @@ uncurry3 f ~(a, b, c) = f a b c
 renderMarkdown ::
      (ToJSON a, MonadIO m)
   => [(Package, Set (Cve a))]
-  -> HashMap Text Maintainer
   -> m ()
-renderMarkdown vulns mts = do
+renderMarkdown vulns = do
   let cves' =
         map (uncurry3 CveWithPackage) .
         sortBy (compare `on` cveId . fst3) .
         concatMap
           ((\(p, cves) ->
-              map (\cve -> (cve, p, findMaintersForPackage p mts)) cves) .
+              map
+                (\cve -> (cve, p, packageMetaMaintainers . packageMeta $ p))
+                cves) .
            second Set.toAscList) $
         vulns
       Just env =
@@ -238,15 +228,16 @@ renderMarkdown vulns mts = do
 renderJSON ::
      (ToJSON a, MonadIO m)
   => [(Package, Set (Cve a))]
-  -> HashMap Text Maintainer
   -> m ()
-renderJSON vulns mts = do
+renderJSON vulns = do
   let cves' =
         map (uncurry3 CveWithPackage) .
         sortBy (compare `on` cveId . fst3) .
         concatMap
           ((\(p, cves) ->
-              map (\cve -> (cve, p, findMaintersForPackage p mts)) cves) .
+              map
+                (\cve -> (cve, p, packageMetaMaintainers . packageMeta $ p))
+                cves) .
            second Set.toAscList) $
         vulns
   putText . toS . encode $ cves'

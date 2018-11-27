@@ -43,9 +43,6 @@ run opts =
   withSystemTempDirectory "nvs" $ \tmpDir -> do
     ret <-
       runExceptT $ do
-        logInfoN "Generating maintainers.json"
-        generateMaintainers (optsNixpkgs opts) tmpDir `catchE`
-          (throwE . flip ShellCommandError "Preparing maintainers.json failed")
         logInfoN "Generating packages.json"
         generatePackages (optsNixpkgs opts) tmpDir `catchE`
           (throwE . flip ShellCommandError "Preparing packages.json failed")
@@ -53,7 +50,6 @@ run opts =
         report
           (map toS (optsNvdFeeds opts))
           (toS tmpDir <> "/packages.json")
-          (toS tmpDir <> "/maintainers.json")
           (optsOutput opts)
     case ret of
       Left (ShellCommandError _ msg) -> do
@@ -63,22 +59,6 @@ run opts =
         logErrorN $ "Failed parsing file " <> toS path <> ":" <> show msg
         liftIO exitFailure
       Right _ -> liftIO exitSuccess
-
-generateMaintainers ::
-     (MonadIO m, MonadLogger m, MonadError ExitCode m)
-  => Text
-  -> FilePath
-  -> m ()
-generateMaintainers nixpkgs tmpDir = do
-  ret <-
-    shell "nix-instantiate" $ do
-      arg "--eval"
-      option "-I" ("nixpkgs=" <> nixpkgs)
-      option
-        "-E"
-        "with (import <nixpkgs> {}); builtins.toJSON pkgs.lib.maintainers"
-      raw "2>/dev/null"
-  liftIO $ Text.writeFile (tmpDir <> "/maintainers.json") (read . toS $ ret)
 
 generatePackages ::
      (MonadIO m, MonadLogger m, MonadError ExitCode m)

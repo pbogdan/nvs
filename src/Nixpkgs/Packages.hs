@@ -40,6 +40,7 @@ import           Data.String (String)
 import qualified Data.Text as Text
 import qualified Data.Vector as Vec
 import           Nixpkgs.Packages.Types
+import           Nixpkgs.Maintainers
 import           Nvs.Types
 
 -- | Main data type for representing package information.
@@ -76,7 +77,7 @@ instance ToJSON Package where
 data PackageMeta = PackageMeta
   { --packageMetaPlatforms :: Maybe [Text] -- ^ list platforms on which the
                                          -- package is supported
-  packageMetaMaintainers :: Maybe [Text] -- ^ list of package maintainers
+  packageMetaMaintainers :: [Maintainer] -- ^ list of package maintainers
   , packageMetaDescription :: Maybe Text -- ^ package description
   , packageMetaLicense :: Maybe [PackageLicense] -- ^ licenses of the package
   , packageMetaPosition :: Maybe Text -- ^ source position of where the package
@@ -88,7 +89,7 @@ data PackageMeta = PackageMeta
 instance FromJSON PackageMeta where
   parseJSON (Object o) =
     PackageMeta <$>  {- o .:? "platforms" <*> -}
-    (pure Nothing) <*>
+    (o .: "maintainers" <|> pure []) <*>
     o .:? "description" <*>
     (o .:? "license" <|> (sequenceA . singleton <$> o .:? "license")) <*>
     o .:? "position" <*>
