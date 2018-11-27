@@ -21,9 +21,11 @@ module Nvs.Report
   , report
   ) where
 
-import           Protolude hiding (link)
+import           Protolude hiding (link, packageName)
 
+import           Control.Concurrent.Async (forConcurrently)
 import           Control.Monad.Logger
+import           Control.Monad.Trans.Resource (runResourceT)
 import           Data.Aeson hiding ((.:))
 import           Data.Aeson.Casing
 import qualified Data.ByteString.Streaming as Stream (readFile)
@@ -98,11 +100,14 @@ report cvePaths pkgsPath mtsPath mode = do
         Stream.mconcat_
   logInfoN "Processing the feeds"
   vulns <-
-    mconcat <$> liftIO (forConcurrently cvePaths (Stream.runResourceT . go))
+    mconcat <$> liftIO (forConcurrently cvePaths (runResourceT . go))
   case mode of
     HTML -> renderHTML vulns mts
     Markdown -> renderMarkdown vulns mts
     JSON -> renderJSON vulns mts
+
+lol :: [(Package, Set (Cve a))] -> [(Package, Cve a)]
+lol = concatMap (uncurry zip . first repeat . second Set.toAscList)
 
 renderHTML ::
      MonadIO m
@@ -131,40 +136,39 @@ renderHTML vulns mts =
               th_ "CVE description"
               th_ "Severity"
           tbody_ $
-            for_ (sortBy (compare `on` packageName . fst) vulns) $ \(pkg, cves') ->
-              for_ (Set.toAscList cves') $ \cve -> do
-                tr_ $ do
-                  td_ $ do
-                    let pName = packageName pkg
-                        mLink = packageUrl pkg
-                        html =
-                          case mLink of
-                            Nothing -> toHtml . displayPackageName $ pName
-                            Just link ->
-                              a_
-                                [href_ link]
-                                (toHtml . displayPackageName $ pName)
-                    html
-                  td_ (toHtml . displayPackageVersion . packageVersion $ pkg)
-                  td_
-                    (a_
-                       [ href_
-                           ("https://nvd.nist.gov/vuln/detail/" <>
-                            (displayCveId . cveId $ cve))
-                       , target_ "blank"
-                       ]
-                       (toHtml . displayCveId . cveId $ cve))
-                  td_ (toHtml . cveDescription $ cve)
-                  td_ (renderSeverity . cveSeverity $ cve)
-                tr_ $ do
-                  td_ [colspan_ "3"] ""
-                  td_ $ do
-                    p_ $ b_ "Package maintainers:"
-                    ul_ $
-                      for_ (packageMetaMaintainers . packageMeta $ pkg) $ \maintainers ->
-                        for_ maintainers $ \maintainer ->
-                          li_ (renderMaintainer maintainer mts)
-                  td_ [] ""
+            for_ (sortBy (compare `on` cvePublished . snd) $ lol vulns) $ \(pkg, cve) -> do
+              tr_ $ do
+                td_ $ do
+                  let pName = packageName pkg
+                      mLink = packageUrl pkg
+                      html =
+                        case mLink of
+                          Nothing -> toHtml . displayPackageName $ pName
+                          Just link ->
+                            a_
+                              [href_ link]
+                              (toHtml . displayPackageName $ pName)
+                  html
+                td_ (toHtml . displayPackageVersion . packageVersion $ pkg)
+                td_
+                  (a_
+                     [ href_
+                         ("https://nvd.nist.gov/vuln/detail/" <>
+                          (displayCveId . cveId $ cve))
+                     , target_ "blank"
+                     ]
+                     (toHtml . displayCveId . cveId $ cve))
+                td_ (toHtml . cveDescription $ cve)
+                td_ (renderSeverity . cveSeverity $ cve)
+              tr_ $ do
+                td_ [colspan_ "3"] ""
+                td_ $ do
+                  p_ $ b_ "Package maintainers:"
+                  ul_ $
+                    for_ (packageMetaMaintainers . packageMeta $ pkg) $ \maintainers ->
+                      for_ maintainers $ \maintainer ->
+                        li_ (renderMaintainer maintainer mts)
+                td_ [] ""
 
 renderSeverity :: Monad m => Maybe Severity -> HtmlT m ()
 renderSeverity severity =

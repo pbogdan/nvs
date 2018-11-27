@@ -12,7 +12,7 @@ Command line arguments parser for nvs command line interface.
 -}
 
 module Nvs.Cli.Opts
-  ( Opts(..)
+ ( Opts(..)
   , parseOptions
   , withInfo
   ) where
@@ -35,13 +35,11 @@ parseOptions :: Parser Opts
 parseOptions =
   Opts <$>
   some
-    (toS <$>
-     strOption
+    (strOption
        (long "nvd-feed" <> metavar "nvd-feed" <>
         help
           "Path to a copy of the NVD JSON feed. May be specified multiple times.")) <*>
-  (toS <$>
-   strOption
+  (strOption
      (long "nixpkgs" <> metavar "nixpkgs" <>
       help "Path to nixpkgs, accepts paths compatible with NIX_PATH.")) <*>
   asum

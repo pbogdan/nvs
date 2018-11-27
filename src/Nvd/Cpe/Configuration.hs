@@ -51,7 +51,7 @@ queryTerms y f (Terms op xs) =
 instance FromJSON (Terms Cpe) where
   parseJSON (Object o) =
     Terms <$> o .: "operator" <*>
-    (o .:? "cpe" >>= \x -> do
+    (o .:? "cpe_match" >>= \x -> do
        y <- sequenceA $ parseJSON <$> x
        return . fromMaybe [] $ y)
   parseJSON x = typeMismatch "Terms" x

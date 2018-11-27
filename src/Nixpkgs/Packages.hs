@@ -13,6 +13,7 @@ nixpkgs packages.
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE UndecidableInstances #-}
 
 module Nixpkgs.Packages
   ( Package(..)
@@ -25,7 +26,7 @@ module Nixpkgs.Packages
   , parsePackages
   ) where
 
-import           Protolude
+import           Protolude hiding (packageName)
 
 import           Data.Aeson
 import           Data.Aeson.Casing
@@ -73,9 +74,9 @@ instance ToJSON Package where
 
 -- | Package meta data.
 data PackageMeta = PackageMeta
-  { packageMetaPlatforms :: Maybe [Text] -- ^ list platforms on which the
+  { --packageMetaPlatforms :: Maybe [Text] -- ^ list platforms on which the
                                          -- package is supported
-  , packageMetaMaintainers :: Maybe [Text] -- ^ list of package maintainers
+  packageMetaMaintainers :: Maybe [Text] -- ^ list of package maintainers
   , packageMetaDescription :: Maybe Text -- ^ package description
   , packageMetaLicense :: Maybe [PackageLicense] -- ^ licenses of the package
   , packageMetaPosition :: Maybe Text -- ^ source position of where the package
@@ -86,8 +87,8 @@ data PackageMeta = PackageMeta
 
 instance FromJSON PackageMeta where
   parseJSON (Object o) =
-    PackageMeta <$> o .:? "platforms" <*>
-    (o .:? "maintainers" <|> (sequenceA . singleton <$> o .:? "maintainers")) <*>
+    PackageMeta <$>  {- o .:? "platforms" <*> -}
+    (pure Nothing) <*>
     o .:? "description" <*>
     (o .:? "license" <|> (sequenceA . singleton <$> o .:? "license")) <*>
     o .:? "position" <*>
@@ -150,7 +151,8 @@ instance Foldable KeyedSet where
   {-# INLINE foldl' #-}
   foldl' f z (KeyedSet t) = HashMap.foldl' (\ acc x -> Set.foldl' f acc x) z t
 
-instance Ord a => Monoid (KeyedSet a) where
+
+instance (Semigroup (KeyedSet a), Ord a) => Monoid (KeyedSet a) where
   mempty = KeyedSet HashMap.empty
   (KeyedSet a) `mappend` (KeyedSet b) =
     KeyedSet (HashMap.unionWith Set.union a b)

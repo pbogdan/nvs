@@ -103,4 +103,4 @@ hush' (Right x) = Just x
 
 mkParsedPackageVersion :: PackageVersion -> Maybe ParsedPackageVersion
 mkParsedPackageVersion (PackageVersion v) =
-  ParsedPackageVersion <$> (hush' . parseV $ v)
+  ParsedPackageVersion <$> (hush' . versioning $ v)

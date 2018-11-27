@@ -17,7 +17,7 @@ module Nvs.Cli
   ( defaultMain
   ) where
 
-import           Protolude hiding (msg)
+import           Protolude hiding (option, msg)
 
 import           Control.Monad.Logger
 import           Control.Monad.Trans.Except

@@ -6,7 +6,7 @@ module Nvd.Cpe
   , cpeMatchExact
   ) where
 
-import Protolude
+import Protolude hiding ((<&&>))
 
 import Data.Aeson
 import Data.Aeson.Types (typeMismatch)

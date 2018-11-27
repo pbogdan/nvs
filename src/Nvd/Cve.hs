@@ -26,7 +26,7 @@ module Nvd.Cve
   , vulnsFor'
   ) where
 
-import           Protolude hiding (transpose)
+import           Protolude hiding (packageName, transpose)
 
 import           Control.Monad
 import           Data.Aeson
