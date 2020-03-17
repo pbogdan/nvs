@@ -1,0 +1,13 @@
+diff --git a/src/Text/Trifecta/Parser.hs b/src/Text/Trifecta/Parser.hs
+index 26a5c1c..98849de 100644
+--- a/src/Text/Trifecta/Parser.hs
++++ b/src/Text/Trifecta/Parser.hs
+@@ -177,8 +177,6 @@ instance Monad Parser where
+   {-# INLINE (>>=) #-}
+   (>>) = (*>)
+   {-# INLINE (>>) #-}
+-  fail = Fail.fail
+-  {-# INLINE fail #-}
+ 
+ instance Fail.MonadFail Parser where
+   fail s = Parser $ \ _ ee _ _ _ _ -> ee (failed s)

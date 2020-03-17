@@ -1,2 +1,11 @@
-{ pkgs ? import <nixpkgs> {}, compiler ? "ghc864" }:
-(import ./default.nix { inherit pkgs compiler; }).env
+let
+  nvs = (import ./default.nix {});
+  sources = import ./nix/sources.nix;
+  pkgs = (import sources.unstable {});
+in
+pkgs.haskellPackages.shellFor {
+  packages = _: [
+    nvs
+  ];
+  withHoogle = true;
+}
