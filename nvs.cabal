@@ -13,14 +13,11 @@ data-files:
 
 library
     exposed-modules:
-        Nixpkgs.Maintainers
         Nixpkgs.Packages
-        Nixpkgs.Packages.Aliases
         Nixpkgs.Packages.Versions
         Nixpkgs.Packages.Types
         Nvs.Cli
         Nvs.Cli.Opts
-        Nvs.Excludes
         Nvs.Files
         Nvs.Report
         Nvs.Types

@@ -4,14 +4,15 @@ module Nvd.Cpe
   ( Cpe(..)
   , cpeMatch
   , cpeMatchExact
-  ) where
+  )
+where
 
-import Protolude hiding ((<&&>))
+import           Protolude               hiding ( (<&&>) )
 
-import Data.Aeson
-import Data.Aeson.Types (typeMismatch)
-import Nixpkgs.Packages.Types
-import Nvd.Cpe.Uri
+import           Data.Aeson
+import           Data.Aeson.Types               ( typeMismatch )
+import           Nixpkgs.Packages.Types
+import           Nvd.Cpe.Uri
 
 data Cpe = Cpe
   { cpeVulnerable :: Bool
@@ -34,15 +35,18 @@ cpeMatchExact x cpe =
   cpeUriMatch x (cpeCpeUri cpe) <&&> Just (cpeVulnerable cpe)
 
 cpeMatch :: (PackageName, PackageVersion) -> Cpe -> Maybe Bool
-cpeMatch x@(pName, pVersion) cpe =
-  case cpePreviousVersions cpe of
-    Just False -> cpeMatchExact x cpe
-    Nothing -> cpeMatchExact x cpe
-    Just True -> do
-      pVersionParsed <- mkParsedPackageVersion pVersion
-      uriVersion <- cpeUriPackageVersion . cpeCpeUri $ cpe
-      uriVersionParsed <- mkParsedPackageVersion uriVersion
-      uriName <- cpeUriPackageName . cpeCpeUri $ cpe
-      return
-        (pName == uriName &&
-         pVersionParsed <= uriVersionParsed && cpeVulnerable cpe)
+cpeMatch x@(pName, pVersion) cpe = case cpePreviousVersions cpe of
+  Just False -> cpeMatchExact x cpe
+  Nothing    -> cpeMatchExact x cpe
+  Just True  -> do
+    pVersionParsed   <- mkParsedPackageVersion pVersion
+    uriVersion       <- cpeUriPackageVersion . cpeCpeUri $ cpe
+    uriVersionParsed <- mkParsedPackageVersion uriVersion
+    uriName          <- cpeUriPackageName . cpeCpeUri $ cpe
+    return
+      (  pName
+      == uriName
+      && pVersionParsed
+      <= uriVersionParsed
+      && cpeVulnerable cpe
+      )

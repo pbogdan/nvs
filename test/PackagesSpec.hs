@@ -2,22 +2,24 @@
 
 module PackagesSpec where
 
-import Protolude
+import           Protolude
 
-import Data.Aeson
-import Data.Aeson.QQ
-import Nixpkgs.Packages
-import Test.Hspec
+import           Data.Aeson
+import           Data.Aeson.QQ
+import           Nixpkgs.Packages
+import           Test.Hspec
 
 {-# ANN spec ("HLint: ignore Redundant do" :: Text) #-}
 spec :: Spec
 spec = do
   describe "When parsing packages" $ do
-    it "a simple value is parsed" $
-      fromJSON packagesJson `shouldBe` Success packagesJson
-    it "packages with multiple versions are preserved" $
-      length <$>
-      (fromJSON packagesJson :: Result PackageSet) `shouldBe` Success 2
+    it "a simple value is parsed"
+      $          fromJSON packagesJson
+      `shouldBe` Success packagesJson
+    it "packages with multiple versions are preserved"
+      $          length
+      <$>        (fromJSON packagesJson :: Result PackageSet)
+      `shouldBe` Success 2
 
 packagesJson :: Value
 packagesJson = [aesonQQ|

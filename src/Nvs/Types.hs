@@ -1,6 +1,6 @@
 module Nvs.Types where
 
-import Protolude
+import           Protolude
 
 data NvsError
   = FileParseError FilePath

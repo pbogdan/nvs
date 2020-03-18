@@ -1,8 +1,8 @@
 module Main where
 
-import Protolude
+import           Protolude
 
-import Nvs.Cli
+import           Nvs.Cli
 
 main :: IO ()
 main = defaultMain

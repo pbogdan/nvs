@@ -9,24 +9,24 @@ Portability : Unknown
 
 -}
 module Nvs.Files
-  (findFile) where
+  ( findFile
+  )
+where
 
-import Protolude
+import           Protolude
 
-import Paths_nvs
-import System.Directory hiding (findFile)
+import           Paths_nvs
+import           System.Directory        hiding ( findFile )
 
 -- | Resolve a file path that's expected to be either relative to the current
 -- working directory, or be a part of the package by being included in
 -- data-files section of the cabal file.
 --
 -- This is used when locating files such as data/excludes.yaml.
-findFile ::
-     MonadIO m
+findFile
+  :: MonadIO m
   => FilePath -- ^ Path to be resolved
   -> m FilePath
 findFile path = do
   haveLocal <- liftIO . doesFileExist $ path
-  if haveLocal
-    then return path
-    else liftIO . getDataFileName $ path
+  if haveLocal then return path else liftIO . getDataFileName $ path

@@ -2,31 +2,34 @@
 
 module Nixpkgs.Packages.Versions
   ( versionCandidate
-  ) where
+  )
+where
 
-import Protolude
+import           Protolude
 
-import Data.List (last, lookup, tail)
-import Data.Versions
-import Nixpkgs.Packages.Types
+import           Data.List                      ( last
+                                                , lookup
+                                                , tail
+                                                )
+import           Data.Versions
+import           Nixpkgs.Packages.Types
 
 mean :: (Fractional b, Real a, Foldable t) => t a -> b
 mean xs = realToFrac (sum xs) / fromIntegral (length xs)
 
 stddev :: (Floating a, Foldable t, Functor t, Real a) => t a -> a
 stddev xs =
-  sqrt $
-  sum (map (\x -> (x - mean xs) ^ (2 :: Int)) xs) / fromIntegral (length xs)
+  sqrt $ sum (map (\x -> (x - mean xs) ^ (2 :: Int)) xs) / fromIntegral
+    (length xs)
 
 commonPrefix :: (Eq e) => [e] -> [e] -> [e]
-commonPrefix _ [] = []
-commonPrefix [] _ = []
-commonPrefix (x:xs) (y:ys)
-  | x == y = x : commonPrefix xs ys
-  | otherwise = []
+commonPrefix _  [] = []
+commonPrefix [] _  = []
+commonPrefix (x : xs) (y : ys) | x == y    = x : commonPrefix xs ys
+                               | otherwise = []
 
 permute :: Eq a => [a] -> [[(a, a)]]
-permute xs = map (\x -> [(x, y) | y <- xs, y /= x]) xs
+permute xs = map (\x -> [ (x, y) | y <- xs, y /= x ]) xs
 
 commonVersionPrefix :: PackageVersion -> PackageVersion -> [VChunk]
 commonVersionPrefix (PackageVersion x) (PackageVersion y) =
@@ -34,27 +37,27 @@ commonVersionPrefix (PackageVersion x) (PackageVersion y) =
       v2 = version y
       c1 = _vChunks <$> v1
       c2 = _vChunks <$> v2
-  in case commonPrefix <$> c1 <*> c2 of
-       Left _ -> []
-       Right n -> n
+  in  case commonPrefix <$> c1 <*> c2 of
+        Left  _ -> []
+        Right n -> n
 
 withMeanCommonPrefix :: [PackageVersion] -> [(PackageVersion, Double)]
 withMeanCommonPrefix vs =
   let xs =
-        map (mean @Double . map (length . uncurry commonVersionPrefix)) .
-        permute $
-        vs
-  in sortBy (compare `on` snd) . zip vs $ xs
+          map (mean @Double . map (length . uncurry commonVersionPrefix))
+            . permute
+            $ vs
+  in  sortBy (compare `on` snd) . zip vs $ xs
 
 taus :: [(Int, Double)]
 taus =
-  [ (3, 1.1511)
-  , (4, 1.4250)
-  , (5, 1.5712)
-  , (6, 1.6563)
-  , (7, 1.7110)
-  , (8, 1.7491)
-  , (9, 1.7770)
+  [ (3 , 1.1511)
+  , (4 , 1.4250)
+  , (5 , 1.5712)
+  , (6 , 1.6563)
+  , (7 , 1.7110)
+  , (8 , 1.7491)
+  , (9 , 1.7770)
   , (10, 1.7984)
   , (11, 1.8153)
   , (12, 1.8290)
@@ -101,27 +104,26 @@ http://www.mne.psu.edu/cimbala/me345/Lectures/Outliers.pdf
 -}
 dropOutliers :: [(PackageVersion, Double)] -> [(PackageVersion, Double)]
 dropOutliers [] = []
-dropOutliers vs@(v:_) =
-  let xs = map snd vs
-      m = mean @Double xs
-      s = stddev xs
-      x = v
-      y = last vs
-      absdevx = abs (snd x - m)
-      absdevy = abs (snd y - m)
-      t = (*) <$> tau (length vs) <*> pure s
-      (suspect, dev) =
-        if absdevx > absdevy
-          then (x, absdevx)
-          else (y, absdevy)
-      test = (<=) <$> pure dev <*> t
-  in case test of
-       Just False ->
-         dropOutliers .
-         withMeanCommonPrefix . map fst . filter ((fst suspect /=) . fst) $
-         vs
-       Just True -> vs
-       Nothing -> vs
+dropOutliers vs@(v : _) =
+  let xs             = map snd vs
+      m              = mean @Double xs
+      s              = stddev xs
+      x              = v
+      y              = last vs
+      absdevx        = abs (snd x - m)
+      absdevy        = abs (snd y - m)
+      t              = (*) <$> tau (length vs) <*> pure s
+      (suspect, dev) = if absdevx > absdevy then (x, absdevx) else (y, absdevy)
+      test           = (<=) <$> pure dev <*> t
+  in  case test of
+        Just False ->
+          dropOutliers
+            . withMeanCommonPrefix
+            . map fst
+            . filter ((fst suspect /=) . fst)
+            $ vs
+        Just True -> vs
+        Nothing   -> vs
 
 allEq :: Eq a => [a] -> Bool
 allEq xs = and $ zipWith (==) xs (tail xs)
@@ -129,26 +131,23 @@ allEq xs = and $ zipWith (==) xs (tail xs)
 commonPrefixLength :: [PackageVersion] -> Maybe Int
 commonPrefixLength vs =
   let xs = map snd . dropOutliers . withMeanCommonPrefix $ vs
-  in if allEq xs
-       then case xs of
-              [] -> Nothing
-              (x:_) ->
-                if x == 0
-                  then Nothing
-                  else Just . truncate $ (x + 1)
-       else Nothing
+  in  if allEq xs
+        then case xs of
+          []      -> Nothing
+          (x : _) -> if x == 0 then Nothing else Just . truncate $ (x + 1)
+        else Nothing
 
 versionCandidate :: PackageVersion -> [PackageVersion] -> Maybe PackageVersion
 versionCandidate pv vs =
   let cpl = commonPrefixLength vs
-  in case cpl of
-       Just l ->
-         let xs =
-               filter (\(_, l') -> l' >= l) .
-               map (\v -> (v, length . commonVersionPrefix pv $ v)) $
-               vs
-         in case xs of
-              [] -> Nothing
-              [(pv', _)] -> Just pv'
-              _ -> Nothing
-       Nothing -> Nothing
+  in  case cpl of
+        Just l ->
+          let xs =
+                  filter (\(_, l') -> l' >= l)
+                    . map (\v -> (v, length . commonVersionPrefix pv $ v))
+                    $ vs
+          in  case xs of
+                []         -> Nothing
+                [(pv', _)] -> Just pv'
+                _          -> Nothing
+        Nothing -> Nothing
