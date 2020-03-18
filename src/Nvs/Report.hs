@@ -62,12 +62,12 @@ data Output
   | Markdown
   deriving (Eq, Show)
 
-data CveWithPackage a = CveWithPackage
+data CveWithPackage a b = CveWithPackage
   { _cveWithPackageCve :: Cve a
-  , _cveWithPackagePackage :: Package
+  , _cveWithPackagePackage :: Package b
   } deriving (Eq, Generic, Show)
 
-instance ToJSON a => ToJSON (CveWithPackage a) where
+instance (ToJSON a, ToJSON b) => ToJSON (CveWithPackage a b) where
   toJSON =
     genericToJSON $ aesonDrop (length ("_CveWithPackage" :: String)) camelCase
 
@@ -103,10 +103,10 @@ report cvePaths pkgsPath mode = do
     Markdown -> renderMarkdown vulns
     JSON     -> renderJSON vulns
 
-lol :: [(Package, Set (Cve a))] -> [(Package, Cve a)]
+lol :: [(Package a, Set (Cve b))] -> [(Package a, Cve b)]
 lol = concatMap (uncurry zip . first repeat . second Set.toAscList)
 
-renderHTML :: MonadIO m => [(Package, Set (Cve a))] -> m ()
+renderHTML :: MonadIO m => [(Package a, Set (Cve b))] -> m ()
 renderHTML vulns = putText . toS . renderText $ do
   doctype_
   head_ $ do
@@ -163,7 +163,8 @@ renderSeverity severity =
         Just Critical -> "Critical"
   in  span_ [classes_ ["label", label]] (toHtml text)
 
-renderMarkdown :: (ToJSON a, MonadIO m) => [(Package, Set (Cve a))] -> m ()
+renderMarkdown
+  :: (ToJSON a, ToJSON b, MonadIO m) => [(Package a, Set (Cve b))] -> m ()
 renderMarkdown vulns = do
   let cves' =
         map (uncurry CveWithPackage)
@@ -183,7 +184,8 @@ renderMarkdown vulns = do
       liftIO exitFailure
     Right out -> putText . toS $ out
 
-renderJSON :: (ToJSON a, MonadIO m) => [(Package, Set (Cve a))] -> m ()
+renderJSON
+  :: (ToJSON a, ToJSON b, MonadIO m) => [(Package a, Set (Cve b))] -> m ()
 renderJSON vulns = do
   let cves' =
         map (uncurry CveWithPackage)
