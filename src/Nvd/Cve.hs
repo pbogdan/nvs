@@ -37,7 +37,6 @@ import           Data.Aeson.Casing
 import           Data.Aeson.Types
 import           Data.HashMap.Strict            ( HashMap )
 import qualified Data.HashMap.Strict           as HashMap
-import           Data.Set                       ( Set )
 import qualified Data.Set                      as Set
 import           Data.String                    ( String
                                                 , IsString(..)
@@ -147,7 +146,7 @@ instance FromJSON (Cve CpeConfiguration) where
   parseJSON _ = mzero
 
 cvesForPackage
-  :: (Affects (Cve a), Ord a)
+  :: (Affects a, Ord a)
   => Package
   -> HashMap PackageName PackageAlias
   -> HashMap PackageName (Set (Cve a))
@@ -172,7 +171,7 @@ cvesForPackage pkg aliases cves =
     (pkg, matches)
 
 vulnsFor
-  :: (Affects (Cve a), Affects a, Ord a)
+  :: (Affects a, Affects a, Ord a)
   => PackageSet
   -> HashMap PackageName PackageAlias
   -> HashMap PackageName (Set (Cve a))
@@ -181,7 +180,7 @@ vulnsFor pkgs aliases cves =
   foldl' (\acc pkg -> cvesForPackage pkg aliases cves : acc) [] pkgs
 
 vulnsFor'
-  :: (Affects (Cve a), Affects a, Ord a, Show a)
+  :: (Affects a, Affects a, Ord a, Show a)
   => Cve a
   -> PackageSet
   -> HashMap PackageName PackageAlias

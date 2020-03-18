@@ -35,7 +35,6 @@ import           Data.Aeson.Types
 import qualified Data.ByteString               as Bytes
 import           Data.HashMap.Strict            ( HashMap )
 import qualified Data.HashMap.Strict           as HashMap
-import           Data.Set                       ( Set )
 import qualified Data.Set                      as Set
 import           Data.String                    ( String )
 import qualified Data.Text                     as Text
@@ -189,6 +188,7 @@ instance FromJSON (KeyedSet Package) where
       o
     pure . KeyedSet . foldl' go HashMap.empty $ pkgs
     -- pkgs <- sequenceA (parseJSON <$> (Vec.fromList . HashMap.elems $ o))
+
    where
     go acc x =
       HashMap.insertWith Set.union (packageName x) (Set.singleton x) acc

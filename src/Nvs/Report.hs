@@ -37,7 +37,6 @@ import qualified Data.ByteString.Streaming.Aeson
                                                as Stream
 import qualified Data.HashMap.Strict           as HashMap
 import           Data.JsonStream.Parser
-import           Data.Set                       ( Set )
 import qualified Data.Set                      as Set
 import           Data.String                    ( String )
 import           Lucid                   hiding ( for_
@@ -72,7 +71,7 @@ data CveWithPackage a = CveWithPackage
   , _cveWithPackageMaintainers :: [Maintainer]
   } deriving (Eq, Generic, Show)
 
-instance ToJSON (Cve a) => ToJSON (CveWithPackage a) where
+instance ToJSON a => ToJSON (CveWithPackage a) where
   toJSON =
     genericToJSON $ aesonDrop (length ("_CveWithPackage" :: String)) camelCase
 

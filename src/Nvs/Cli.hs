@@ -18,20 +18,15 @@ module Nvs.Cli
   )
 where
 
-import           Protolude               hiding ( option
-                                                , msg
-                                                )
+import           Protolude               hiding ( option )
 
 import           Control.Monad.Logger
-import           Control.Monad.Trans.Except
-import qualified Data.Text.IO                  as Text
 import           Nvs.Cli.Opts
 import           Nvs.Report
 import           Nvs.Types
 import           Options.Applicative            ( execParser )
 import           Shell
 import           System.IO.Temp
-import           Text.Read                      ( read )
 
 -- | Default main function.
 defaultMain :: IO ()

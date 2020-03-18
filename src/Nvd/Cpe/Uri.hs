@@ -1,7 +1,6 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE GADTs #-}
-{-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeFamilies #-}
 
@@ -23,7 +22,6 @@ import           Control.Monad                  ( fail )
 import           Data.Aeson
 import           Data.Aeson.Types               ( typeMismatch )
 import qualified Data.Text                     as Text
-import           GHC.TypeLits
 import           Nixpkgs.Packages.Types
 
 data CpePart

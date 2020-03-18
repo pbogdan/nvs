@@ -30,7 +30,6 @@ import           Protolude
 
 import           Data.Aeson
 import           Data.Char
-import           Data.Hashable
 import           Data.String                    ( IsString(..) )
 import qualified Data.Text                     as Text
 import           Data.Versions

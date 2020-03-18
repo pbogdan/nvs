@@ -25,6 +25,7 @@ file. The format of the database is as follows:
 -}
 
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 module Nixpkgs.Packages.Aliases
   ( PackageAlias(..)
@@ -63,7 +64,9 @@ parseAliases
 parseAliases path = do
   s <- liftIO . Bytes.readFile $ path
   let parser = withArray "Aliases" $ \a -> sequenceA (parseJSON <$> a)
-  let mRet   = join (parseEither parser <$> decodeEither s)
+  let (mRet :: Either [Char] (Vec.Vector PackageAlias)) =
+        join
+          (parseEither parser <$> (first displayException . decodeEither' $ s))
   case mRet of
     Left  e   -> throwError . FileParseError path . toS $ e
     Right ret -> return . Vec.foldl' go HashMap.empty $ ret

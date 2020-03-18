@@ -64,7 +64,7 @@ parseExcludes
   -> m Excludes
 parseExcludes path = do
   s <- liftIO . Bytes.readFile $ path
-  let excludesOrErr = decodeEither s
+  let excludesOrErr = first displayException . decodeEither' $ s
   case excludesOrErr of
     Left  e  -> throwError $ FileParseError path (toS e)
     Right es -> return es

@@ -18,7 +18,6 @@ import           Protolude
 import           Data.Aeson
 import           Data.Aeson.Types               ( typeMismatch )
 import           Data.List                      ( nub )
-import           Data.List.NonEmpty             ( NonEmpty )
 import qualified Data.List.NonEmpty            as NE
 import           Nixpkgs.Packages.Types
 import           Nixpkgs.Packages.Versions
