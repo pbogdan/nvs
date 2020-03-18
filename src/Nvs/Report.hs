@@ -44,7 +44,6 @@ import           Lucid                   hiding ( for_
                                                 )
 import           Lucid.Base              hiding ( term )
 import           Lucid.Bootstrap
-import           Nixpkgs.Maintainers
 import           Nixpkgs.Packages
 import           Nixpkgs.Packages.Types
 import           Nvd.Cpe.Configuration
@@ -66,7 +65,6 @@ data Output
 data CveWithPackage a = CveWithPackage
   { _cveWithPackageCve :: Cve a
   , _cveWithPackagePackage :: Package
-  , _cveWithPackageMaintainers :: [Maintainer]
   } deriving (Eq, Generic, Show)
 
 instance ToJSON a => ToJSON (CveWithPackage a) where
@@ -152,14 +150,6 @@ renderHTML vulns = putText . toS . renderText $ do
                 )
               td_ (toHtml . cveDescription $ cve)
               td_ (renderSeverity . cveSeverity $ cve)
-            tr_ $ do
-              td_ [colspan_ "3"] ""
-              td_ $ do
-                p_ $ b_ "Package maintainers:"
-                ul_
-                  $ for_ (packageMetaMaintainers . packageMeta $ pkg)
-                  $ \maintainer -> li_ (renderMaintainer maintainer)
-              td_ [] ""
 
 renderSeverity :: Monad m => Maybe Severity -> HtmlT m ()
 renderSeverity severity =
@@ -177,39 +167,13 @@ renderSeverity severity =
         Just Critical -> "Critical"
   in  span_ [classes_ ["label", label]] (toHtml text)
 
-renderMaintainer :: Monad m => Maintainer -> HtmlT m ()
-renderMaintainer mt =
-  toHtml (maintainerName mt)
-    <> toHtml (" " :: Text)
-    <> toHtml ("<" :: Text)
-    <> a_ [href_ ("mailto:" <> maintainerEmail mt)]
-          (toHtml (maintainerEmail mt))
-    <> toHtml (">" :: Text)
-    <> toHtml (" " :: Text)
-    <> a_
-         [ href_
-             (  "https://github.com/"
-             <> (fromMaybe "unknown" . maintainerGithub $ mt)
-             )
-         ]
-         (toHtml ("@" <> (fromMaybe "unknown" . maintainerGithub $ mt)))
-
-fst3 :: (a, b, c) -> a
-fst3 (a, _, _) = a
-
-uncurry3 :: (a -> b -> c -> d) -> ((a, b, c) -> d)
-uncurry3 f ~(a, b, c) = f a b c
-
 renderMarkdown :: (ToJSON a, MonadIO m) => [(Package, Set (Cve a))] -> m ()
 renderMarkdown vulns = do
   let cves' =
-        map (uncurry3 CveWithPackage)
-          . sortBy (compare `on` cveId . fst3)
+        map (uncurry CveWithPackage)
+          . sortBy (compare `on` cveId . fst)
           . concatMap
-              ( (\(p, cves) -> map
-                  (\cve -> (cve, p, packageMetaMaintainers . packageMeta $ p))
-                  cves
-                )
+              ( (\(p, cves) -> map (\cve -> (cve, p)) cves)
               . second Set.toAscList
               )
           $ vulns
@@ -226,13 +190,10 @@ renderMarkdown vulns = do
 renderJSON :: (ToJSON a, MonadIO m) => [(Package, Set (Cve a))] -> m ()
 renderJSON vulns = do
   let cves' =
-        map (uncurry3 CveWithPackage)
-          . sortBy (compare `on` cveId . fst3)
+        map (uncurry CveWithPackage)
+          . sortBy (compare `on` cveId . fst)
           . concatMap
-              ( (\(p, cves) -> map
-                  (\cve -> (cve, p, packageMetaMaintainers . packageMeta $ p))
-                  cves
-                )
+              ( (\(p, cves) -> map (\cve -> (cve, p)) cves)
               . second Set.toAscList
               )
           $ vulns

@@ -40,7 +40,6 @@ import           Data.String                    ( String )
 import qualified Data.Text                     as Text
 import qualified Data.Vector                   as Vec
 import           Nixpkgs.Packages.Types
-import           Nixpkgs.Maintainers
 import           Nvs.Types
 
 -- | Main data type for representing package information.
@@ -81,8 +80,7 @@ instance ToJSON Package where
 data PackageMeta = PackageMeta
   { --packageMetaPlatforms :: Maybe [Text] -- ^ list platforms on which the
                                          -- package is supported
-  packageMetaMaintainers :: [Maintainer] -- ^ list of package maintainers
-  , packageMetaDescription :: Maybe Text -- ^ package description
+   packageMetaDescription :: Maybe Text -- ^ package description
   , packageMetaLicense :: Maybe [PackageLicense] -- ^ licenses of the package
   , packageMetaPosition :: Maybe Text -- ^ source position of where the package
                                       -- is defined within nixpkgs
@@ -93,9 +91,7 @@ data PackageMeta = PackageMeta
 instance FromJSON PackageMeta where
   parseJSON (Object o) =
     PackageMeta
-      <$>  {- o .:? "platforms" <*> -}
-          (o .: "maintainers" <|> pure [])
-      <*> o
+      <$> o
       .:? "description"
       <*> (o .:? "license" <|> (sequenceA . singleton <$> o .:? "license"))
       <*> o
@@ -188,6 +184,9 @@ instance FromJSON (KeyedSet Package) where
       o
     pure . KeyedSet . foldl' go HashMap.empty $ pkgs
     -- pkgs <- sequenceA (parseJSON <$> (Vec.fromList . HashMap.elems $ o))
+
+
+
 
    where
     go acc x =

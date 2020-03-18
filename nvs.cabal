@@ -13,7 +13,6 @@ data-files:
 
 library
     exposed-modules:
-        Nixpkgs.Maintainers
         Nixpkgs.Packages
         Nixpkgs.Packages.Versions
         Nixpkgs.Packages.Types
