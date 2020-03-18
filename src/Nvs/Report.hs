@@ -131,11 +131,7 @@ renderHTML vulns = putText . toS . renderText $ do
             tr_ $ do
               td_ $ do
                 let pName = packageName pkg
-                    mLink = packageUrl pkg
-                    html  = case mLink of
-                      Nothing -> toHtml . displayPackageName $ pName
-                      Just link ->
-                        a_ [href_ link] (toHtml . displayPackageName $ pName)
+                    html  = toHtml . displayPackageName $ pName
                 html
               td_ (toHtml . displayPackageVersion . packageVersion $ pkg)
               td_
