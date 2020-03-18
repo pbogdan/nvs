@@ -83,11 +83,8 @@ report
   -> Output -- ^ what type of output to generate
   -> m ()
 report cvePaths pkgsPath mode = do
-  logInfoN "Parsing excludes"
   logInfoN "Parsing packages"
   pkgs <- parsePackages pkgsPath
-  logInfoN "Parsing maintainers"
-  logInfoN "Parsing aliases"
   let parser = "CVE_Items" .: arrayOf value :: Parser (Cve CpeConfiguration)
       go path =
         Stream.readFile path
