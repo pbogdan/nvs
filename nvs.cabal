@@ -19,7 +19,6 @@ library
         Nixpkgs.Packages.Types
         Nvs.Cli
         Nvs.Cli.Opts
-        Nvs.Excludes
         Nvs.Files
         Nvs.Report
         Nvs.Types

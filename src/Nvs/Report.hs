@@ -49,7 +49,6 @@ import           Nixpkgs.Packages
 import           Nixpkgs.Packages.Types
 import           Nvd.Cpe.Configuration
 import           Nvd.Cve
-import           Nvs.Excludes
 import           Nvs.Files
 import           Nvs.Types
 import qualified Streaming.Prelude             as Stream
@@ -87,7 +86,6 @@ report
   -> m ()
 report cvePaths pkgsPath mode = do
   logInfoN "Parsing excludes"
-  es <- parseExcludes =<< findFile "data/vuln-excludes.yaml"
   logInfoN "Parsing packages"
   pkgs <- parsePackages pkgsPath
   logInfoN "Parsing maintainers"
@@ -97,7 +95,6 @@ report cvePaths pkgsPath mode = do
         Stream.readFile path
           & Stream.streamParse parser
           & void
-          & Stream.filter (\cve -> cveId cve `notElem` nvdExcludes es)
           & Stream.map (\cve -> vulnsFor' cve pkgs)
           & Stream.filter (not . null . filter (not . Set.null . snd))
           & Stream.mconcat_
