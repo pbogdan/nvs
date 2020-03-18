@@ -15,7 +15,6 @@ library
     exposed-modules:
         Nixpkgs.Maintainers
         Nixpkgs.Packages
-        Nixpkgs.Packages.Aliases
         Nixpkgs.Packages.Versions
         Nixpkgs.Packages.Types
         Nvs.Cli

@@ -45,7 +45,6 @@ import qualified Data.Text                     as Text
 import           Data.Time
 import qualified Data.Vector                   as Vec
 import           Nixpkgs.Packages
-import           Nixpkgs.Packages.Aliases
 import           Nixpkgs.Packages.Types
 import           Nvd.Cpe.Configuration
 import           Nvd.Cve.Types
@@ -148,63 +147,47 @@ instance FromJSON (Cve CpeConfiguration) where
 cvesForPackage
   :: (Affects a, Ord a)
   => Package
-  -> HashMap PackageName PackageAlias
   -> HashMap PackageName (Set (Cve a))
   -> (Package, Set (Cve a))
-cvesForPackage pkg aliases cves =
-  let
-    pVersion = packageVersion pkg
-    pName    = packageName pkg
-    pAliases =
-      fromMaybe [] (packageAliasAliases <$> HashMap.lookup pName aliases)
-    terms = pName : pAliases
-    queries =
-      foldr Set.union Set.empty
-        . catMaybes
-        $ [ HashMap.lookup term cves | term <- terms ]
-    candidates = zip terms (repeat pVersion)
-    fns        = map (flip isAffected) candidates
-    matches    = Set.filter
-      (\cve -> let ret = map (\fn -> fn cve) fns in getAny . foldMap Any $ ret)
-      queries
-  in
-    (pkg, matches)
+cvesForPackage pkg cves =
+  let pVersion = packageVersion pkg
+      pName    = packageName pkg
+      -- @TODO can get rid of the list here
+      terms    = [pName]
+      queries =
+          foldr Set.union Set.empty
+            . catMaybes
+            $ [ HashMap.lookup term cves | term <- terms ]
+      candidates = zip terms (repeat pVersion)
+      fns        = map (flip isAffected) candidates
+      matches    = Set.filter
+        (\cve ->
+          let ret = map (\fn -> fn cve) fns in getAny . foldMap Any $ ret
+        )
+        queries
+  in  (pkg, matches)
 
 vulnsFor
   :: (Affects a, Affects a, Ord a)
   => PackageSet
-  -> HashMap PackageName PackageAlias
   -> HashMap PackageName (Set (Cve a))
   -> [(Package, Set (Cve a))]
-vulnsFor pkgs aliases cves =
-  foldl' (\acc pkg -> cvesForPackage pkg aliases cves : acc) [] pkgs
+vulnsFor pkgs cves = foldl' (\acc pkg -> cvesForPackage pkg cves : acc) [] pkgs
 
 vulnsFor'
   :: (Affects a, Affects a, Ord a, Show a)
   => Cve a
   -> PackageSet
-  -> HashMap PackageName PackageAlias
   -> [(Package, Set (Cve a))]
-vulnsFor' cve (KeyedSet pkgs) aliases =
-  let
-    aliases' = mapMaybe (`HashMap.lookup` transpose aliases) . packages $ cve
-    candidates =
-      foldl' (\m n -> HashMap.insert n (Set.singleton cve) m) HashMap.empty
-        . packages
-        $ cve
-    pkgs' =
-      foldl' (\m (name, set) -> HashMap.insertWith Set.union name set m)
-             HashMap.empty
-        . mapMaybe (`lookupWithKey` pkgs)
-        $ (aliases' <> packages cve)
-  in
-    vulnsFor (KeyedSet pkgs') aliases candidates
- where
-  lookupWithKey k m = (,) <$> pure k <*> HashMap.lookup k m
-  transpose
-    :: HashMap PackageName PackageAlias -> HashMap PackageName PackageName
-  transpose = foldl'
-    (\acc x -> foldr (`HashMap.insert` packageAliasPackage x) acc
-      $ packageAliasAliases x
-    )
-    HashMap.empty
+vulnsFor' cve (KeyedSet pkgs) =
+  let candidates =
+          foldl' (\m n -> HashMap.insert n (Set.singleton cve) m) HashMap.empty
+            . packages
+            $ cve
+      pkgs' =
+          foldl' (\m (name, set) -> HashMap.insertWith Set.union name set m)
+                 HashMap.empty
+            . mapMaybe (`lookupWithKey` pkgs)
+            $ packages cve
+  in  vulnsFor (KeyedSet pkgs') candidates
+  where lookupWithKey k m = (,) <$> pure k <*> HashMap.lookup k m

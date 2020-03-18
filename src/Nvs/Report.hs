@@ -46,7 +46,6 @@ import           Lucid.Base              hiding ( term )
 import           Lucid.Bootstrap
 import           Nixpkgs.Maintainers
 import           Nixpkgs.Packages
-import           Nixpkgs.Packages.Aliases
 import           Nixpkgs.Packages.Types
 import           Nvd.Cpe.Configuration
 import           Nvd.Cve
@@ -93,14 +92,13 @@ report cvePaths pkgsPath mode = do
   pkgs <- parsePackages pkgsPath
   logInfoN "Parsing maintainers"
   logInfoN "Parsing aliases"
-  aliases <- parseAliases =<< findFile "data/package-aliases.yaml"
   let parser = "CVE_Items" .: arrayOf value :: Parser (Cve CpeConfiguration)
       go path =
         Stream.readFile path
           & Stream.streamParse parser
           & void
           & Stream.filter (\cve -> cveId cve `notElem` nvdExcludes es)
-          & Stream.map (\cve -> vulnsFor' cve pkgs aliases)
+          & Stream.map (\cve -> vulnsFor' cve pkgs)
           & Stream.filter (not . null . filter (not . Set.null . snd))
           & Stream.mconcat_
   logInfoN "Processing the feeds"
