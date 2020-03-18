@@ -1,10 +1,11 @@
 module Nvd.Cve.Types
   ( Affects(..)
-  ) where
+  )
+where
 
-import Protolude
+import           Protolude
 
-import Nixpkgs.Packages.Types
+import           Nixpkgs.Packages.Types
 
 {-
 isAffected a (p, v) `elem` packages a

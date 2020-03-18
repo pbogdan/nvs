@@ -23,15 +23,16 @@ module Nixpkgs.Packages.Types
   , parsePackageVersion
   , ParsedPackageVersion
   , mkParsedPackageVersion
-  ) where
+  )
+where
 
 import           Protolude
 
 import           Data.Aeson
 import           Data.Char
 import           Data.Hashable
-import           Data.String (IsString(..))
-import qualified Data.Text as Text
+import           Data.String                    ( IsString(..) )
+import qualified Data.Text                     as Text
 import           Data.Versions
 
 newtype PackageName =
@@ -40,7 +41,7 @@ newtype PackageName =
 
 instance FromJSON PackageName where
   parseJSON (String s) = pure . PackageName $ s
-  parseJSON _ = mzero
+  parseJSON _          = mzero
 
 instance ToJSON PackageName where
   toJSON (PackageName n) = String n
@@ -56,9 +57,10 @@ displayPackageName (PackageName name) = name
 -- https://github.com/NixOS/nix/blob/c94f3d5575d7af5403274d1e9e2f3c9d72989751/src/libexpr/names.cc#L14
 parsePackageName :: Text -> PackageName
 parsePackageName s =
-  PackageName .
-  Text.dropEnd ((Text.length . unPackageVersion . parsePackageVersion $ s) + 1) $
-  s
+  PackageName
+    . Text.dropEnd
+        ((Text.length . unPackageVersion . parsePackageVersion $ s) + 1)
+    $ s
 
 newtype PackageVersion = PackageVersion
   { unPackageVersion :: Text
@@ -66,7 +68,7 @@ newtype PackageVersion = PackageVersion
 
 instance FromJSON PackageVersion where
   parseJSON (String s) = pure . PackageVersion $ s
-  parseJSON _ = mzero
+  parseJSON _          = mzero
 
 instance ToJSON PackageVersion where
   toJSON (PackageVersion v) = String v
@@ -84,21 +86,21 @@ parsePackageVersion :: Text -> PackageVersion
 parsePackageVersion s =
   let prefix = Text.takeWhile (/= '-') s
       suffix = Text.drop (Text.length prefix) s
-  in case Text.length suffix of
-       0 -> PackageVersion suffix
-       1 -> PackageVersion (suffix <> prefix)
-       _ ->
-         let c = Text.head . Text.drop 1 $ suffix
-         in if isDigit c
-              then PackageVersion . Text.drop 1 $ suffix
-              else parsePackageVersion . Text.drop 1 $ suffix
+  in  case Text.length suffix of
+        0 -> PackageVersion suffix
+        1 -> PackageVersion (suffix <> prefix)
+        _ ->
+          let c = Text.head . Text.drop 1 $ suffix
+          in  if isDigit c
+                then PackageVersion . Text.drop 1 $ suffix
+                else parsePackageVersion . Text.drop 1 $ suffix
 
 newtype ParsedPackageVersion =
   ParsedPackageVersion Versioning
   deriving (Eq, Ord, Show)
 
 hush' :: Either e a -> Maybe a
-hush' (Left _) = Nothing
+hush' (Left  _) = Nothing
 hush' (Right x) = Just x
 
 mkParsedPackageVersion :: PackageVersion -> Maybe ParsedPackageVersion

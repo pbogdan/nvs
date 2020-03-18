@@ -12,14 +12,17 @@ module Nvd.Cpe.Uri
   , cpeUriMatch
   , cpeUriPackageName
   , cpeUriPackageVersion
-  ) where
+  )
+where
 
-import           Protolude hiding (Any, Product)
+import           Protolude               hiding ( Any
+                                                , Product
+                                                )
 
-import           Control.Monad (fail)
+import           Control.Monad                  ( fail )
 import           Data.Aeson
-import           Data.Aeson.Types (typeMismatch)
-import qualified Data.Text as Text
+import           Data.Aeson.Types               ( typeMismatch )
+import qualified Data.Text                     as Text
 import           GHC.TypeLits
 import           Nixpkgs.Packages.Types
 
@@ -50,7 +53,7 @@ instance Ord CpeUri where
 
 instance FromJSON CpeUri where
   parseJSON (String s) = either (fail . toS) pure (parseCpeUri s)
-  parseJSON x = typeMismatch "CpeUri" x
+  parseJSON x          = typeMismatch "CpeUri" x
 
 instance ToJSON CpeUri where
   toJSON _ = object []
@@ -81,57 +84,54 @@ type family SegmentIndex (a :: *) :: Nat where
 parseCpeUri :: Text -> Either Text CpeUri
 parseCpeUri s =
   let parts = Text.splitOn ":" s
-  in CpeUri <$> parseCpePart parts <*> parseCpeValue (Proxy :: Proxy 3) parts <*>
-     parseCpeValue (Proxy :: Proxy 4) parts <*>
-     parseCpeValue (Proxy :: Proxy 5) parts
+  in  CpeUri
+        <$> parseCpePart parts
+        <*> parseCpeValue (Proxy :: Proxy 3) parts
+        <*> parseCpeValue (Proxy :: Proxy 4) parts
+        <*> parseCpeValue (Proxy :: Proxy 5) parts
 
-parseCpeValue ::
-     (KnownNat b, b ~ SegmentIndex a)
+parseCpeValue
+  :: (KnownNat b, b ~ SegmentIndex a)
   => proxy b
   -> [Text]
   -> Either Text (CpeValue a)
 parseCpeValue p parts =
-  let index = natVal p
-  in cpeUriSegment (fromIntegral index) parts >>= parse
-  where
-    parse s' =
-      case s' of
-        "" -> Right Any
-        "-" -> Right NA
-        _ -> Right . CpeValue $ s'
+  let index = natVal p in cpeUriSegment (fromIntegral index) parts >>= parse
+ where
+  parse s' = case s' of
+    ""  -> Right Any
+    "-" -> Right NA
+    _   -> Right . CpeValue $ s'
 
 cpeUriSegment :: Int -> [Text] -> Either Text Text
 cpeUriSegment i parts =
   let item = head . drop i $ parts
-  in case item of
-       Nothing -> Left $ "Segment " <> show i <> " doesn't exist"
-       Just x -> Right x
+  in  case item of
+        Nothing -> Left $ "Segment " <> show i <> " doesn't exist"
+        Just x  -> Right x
 
 parseCpePart :: [Text] -> Either Text CpePart
-parseCpePart parts =
-  case cpeUriSegment 2 parts of
-    Right "a" -> Right Application
-    Right "o" -> Right OS
-    Right "h" -> Right Hardware
-    Right _ -> Right Unknown
-    Left e -> Left e
+parseCpePart parts = case cpeUriSegment 2 parts of
+  Right "a" -> Right Application
+  Right "o" -> Right OS
+  Right "h" -> Right Hardware
+  Right _   -> Right Unknown
+  Left  e   -> Left e
 
 cpeUriPackageName :: CpeUri -> Maybe PackageName
-cpeUriPackageName uri =
-  case cpeProduct uri of
-    NA -> Nothing
-    Any -> Nothing
-    CpeValue v -> Just . PackageName . toS $ v
+cpeUriPackageName uri = case cpeProduct uri of
+  NA         -> Nothing
+  Any        -> Nothing
+  CpeValue v -> Just . PackageName . toS $ v
 
 cpeUriPackageVersion :: CpeUri -> Maybe PackageVersion
-cpeUriPackageVersion uri =
-  case cpeVersion uri of
-    NA -> Nothing
-    Any -> Nothing
-    CpeValue v -> Just . PackageVersion . toS $ v
+cpeUriPackageVersion uri = case cpeVersion uri of
+  NA         -> Nothing
+  Any        -> Nothing
+  CpeValue v -> Just . PackageVersion . toS $ v
 
 cpeUriMatch :: (PackageName, PackageVersion) -> CpeUri -> Maybe Bool
 cpeUriMatch (name, version) uri = do
-  cName <- cpeUriPackageName uri
+  cName    <- cpeUriPackageName uri
   cVersion <- cpeUriPackageVersion uri
   return (name == cName && version == cVersion)

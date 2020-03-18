@@ -29,14 +29,15 @@ file. The format of the database is as follows:
 module Nixpkgs.Packages.Aliases
   ( PackageAlias(..)
   , parseAliases
-  ) where
+  )
+where
 
 import           Protolude
 
-import qualified Data.ByteString as Bytes
-import           Data.HashMap.Strict (HashMap)
-import qualified Data.HashMap.Strict as HashMap
-import qualified Data.Vector as Vec
+import qualified Data.ByteString               as Bytes
+import           Data.HashMap.Strict            ( HashMap )
+import qualified Data.HashMap.Strict           as HashMap
+import qualified Data.Vector                   as Vec
 import           Data.Yaml
 import           Nixpkgs.Packages.Types
 import           Nvs.Types
@@ -51,24 +52,24 @@ data PackageAlias = PackageAlias
 
 instance FromJSON PackageAlias where
   parseJSON (Object o) = PackageAlias <$> o .: "package" <*> o .: "aliases"
-  parseJSON _ = mzero
+  parseJSON _          = mzero
 
 -- | Load and parse aliases database. The returned hash map is keyed off of the
 -- names of nixpkgs packages.
-parseAliases ::
-     (MonadError NvsError m, MonadIO m)
+parseAliases
+  :: (MonadError NvsError m, MonadIO m)
   => FilePath -- ^ path to aliases database file
   -> m (HashMap PackageName PackageAlias)
 parseAliases path = do
   s <- liftIO . Bytes.readFile $ path
   let parser = withArray "Aliases" $ \a -> sequenceA (parseJSON <$> a)
-  let mRet = join (parseEither parser <$> decodeEither s)
+  let mRet   = join (parseEither parser <$> decodeEither s)
   case mRet of
-    Left e -> throwError . FileParseError path . toS $ e
+    Left  e   -> throwError . FileParseError path . toS $ e
     Right ret -> return . Vec.foldl' go HashMap.empty $ ret
-  where
-    go ::
-         HashMap PackageName PackageAlias
-      -> PackageAlias
-      -> HashMap PackageName PackageAlias
-    go acc x = HashMap.insert (packageAliasPackage x) x acc
+ where
+  go
+    :: HashMap PackageName PackageAlias
+    -> PackageAlias
+    -> HashMap PackageName PackageAlias
+  go acc x = HashMap.insert (packageAliasPackage x) x acc

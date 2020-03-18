@@ -32,14 +32,15 @@ file. The format of the database is as follows:
 module Nvs.Excludes
   ( Excludes(..)
   , parseExcludes
-  ) where
+  )
+where
 
 import           Protolude
 
-import qualified Data.ByteString as Bytes
+import qualified Data.ByteString               as Bytes
 import           Data.Yaml
 import           Nvd.Cve
-import Nvs.Types
+import           Nvs.Types
 
 -- | Representation of entries in the excludes database.
 data Excludes = Excludes
@@ -51,18 +52,19 @@ data Excludes = Excludes
 
 instance FromJSON Excludes where
   parseJSON (Object o) =
-    Excludes <$> (o .: "nvd" >>= (.: "excludes")) <*>
-    (o .: "glsa" >>= (.: "excludes"))
+    Excludes
+      <$> (o .: "nvd" >>= (.: "excludes"))
+      <*> (o .: "glsa" >>= (.: "excludes"))
   parseJSON _ = mzero
 
 -- | Load and parse excludes database.
-parseExcludes ::
-     (MonadError NvsError m, MonadIO m)
+parseExcludes
+  :: (MonadError NvsError m, MonadIO m)
   => FilePath -- ^ path tot he excludes database
   -> m Excludes
 parseExcludes path = do
-  s <- liftIO . Bytes.readFile $path
+  s <- liftIO . Bytes.readFile $ path
   let excludesOrErr = decodeEither s
   case excludesOrErr of
-    Left e -> throwError $ FileParseError path (toS e)
+    Left  e  -> throwError $ FileParseError path (toS e)
     Right es -> return es

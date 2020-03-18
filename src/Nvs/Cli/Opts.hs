@@ -12,15 +12,16 @@ Command line arguments parser for nvs command line interface.
 -}
 
 module Nvs.Cli.Opts
- ( Opts(..)
+  ( Opts(..)
   , parseOptions
   , withInfo
-  ) where
+  )
+where
 
-import Protolude
+import           Protolude
 
-import Nvs.Report
-import Options.Applicative
+import           Nvs.Report
+import           Options.Applicative
 
 -- | Command line options for the CLI.
 data Opts = Opts
@@ -33,21 +34,26 @@ data Opts = Opts
 -- | Parser for the command line options.
 parseOptions :: Parser Opts
 parseOptions =
-  Opts <$>
-  some
-    (strOption
-       (long "nvd-feed" <> metavar "nvd-feed" <>
-        help
-          "Path to a copy of the NVD JSON feed. May be specified multiple times.")) <*>
-  (strOption
-     (long "nixpkgs" <> metavar "nixpkgs" <>
-      help "Path to nixpkgs, accepts paths compatible with NIX_PATH.")) <*>
-  asum
-    [ flag' HTML (long "html" <> help "Render HTML.")
-    , flag' Markdown (long "markdown" <> help "Render Markdown.")
-    , flag' JSON (long "json" <> help "Render JSON.")
-    ] <*>
-  switch (long "verbose" <> help "Verbose output.")
+  Opts
+    <$> some
+          (strOption
+            (  long "nvd-feed"
+            <> metavar "nvd-feed"
+            <> help
+                 "Path to a copy of the NVD JSON feed. May be specified multiple times."
+            )
+          )
+    <*> (strOption
+          (long "nixpkgs" <> metavar "nixpkgs" <> help
+            "Path to nixpkgs, accepts paths compatible with NIX_PATH."
+          )
+        )
+    <*> asum
+          [ flag' HTML     (long "html" <> help "Render HTML.")
+          , flag' Markdown (long "markdown" <> help "Render Markdown.")
+          , flag' JSON     (long "json" <> help "Render JSON.")
+          ]
+    <*> switch (long "verbose" <> help "Verbose output.")
 
 -- | Convenience function to add @--help@ support given a parser and
 -- description.

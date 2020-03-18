@@ -24,21 +24,22 @@ module Nixpkgs.Packages
   , KeyedSet(..)
   , PackageSet
   , parsePackages
-  ) where
+  )
+where
 
-import           Protolude hiding (packageName)
+import           Protolude               hiding ( packageName )
 
 import           Data.Aeson
 import           Data.Aeson.Casing
 import           Data.Aeson.Types
-import qualified Data.ByteString as Bytes
-import           Data.HashMap.Strict (HashMap)
-import qualified Data.HashMap.Strict as HashMap
-import           Data.Set (Set)
-import qualified Data.Set as Set
-import           Data.String (String)
-import qualified Data.Text as Text
-import qualified Data.Vector as Vec
+import qualified Data.ByteString               as Bytes
+import           Data.HashMap.Strict            ( HashMap )
+import qualified Data.HashMap.Strict           as HashMap
+import           Data.Set                       ( Set )
+import qualified Data.Set                      as Set
+import           Data.String                    ( String )
+import qualified Data.Text                     as Text
+import qualified Data.Vector                   as Vec
 import           Nixpkgs.Packages.Types
 import           Nixpkgs.Maintainers
 import           Nvs.Types
@@ -59,15 +60,19 @@ instance Ord Package where
         v2 = packageVersion p2
         n1 = packageName p1
         n2 = packageName p2
-    in if v1 == v2 && n1 == n2
-         then EQ
-         else v1 `compare` v2
+    in  if v1 == v2 && n1 == n2 then EQ else v1 `compare` v2
 
 instance FromJSON Package where
   parseJSON (Object o) =
-    Package <$> o .: "system" <*> (parsePackageName <$> o .: "name") <*>
-    (parsePackageVersion <$> o .: "name") <*> o .: "attrPath" <*>
-    o .: "meta"
+    Package
+      <$> o
+      .:  "system"
+      <*> (parsePackageName <$> o .: "name")
+      <*> (parsePackageVersion <$> o .: "name")
+      <*> o
+      .:  "attrPath"
+      <*> o
+      .:  "meta"
   parseJSON _ = mzero
 
 instance ToJSON Package where
@@ -88,16 +93,20 @@ data PackageMeta = PackageMeta
 
 instance FromJSON PackageMeta where
   parseJSON (Object o) =
-    PackageMeta <$>  {- o .:? "platforms" <*> -}
-    (o .: "maintainers" <|> pure []) <*>
-    o .:? "description" <*>
-    (o .:? "license" <|> (sequenceA . singleton <$> o .:? "license")) <*>
-    o .:? "position" <*>
-    (o .:? "homepage" <|> (sequenceA . singleton <$> o .:? "homepage")) <*>
-    o .:? "longDescription"
-    where
-      singleton :: a -> [a]
-      singleton x = [x]
+    PackageMeta
+      <$>  {- o .:? "platforms" <*> -}
+          (o .: "maintainers" <|> pure [])
+      <*> o
+      .:? "description"
+      <*> (o .:? "license" <|> (sequenceA . singleton <$> o .:? "license"))
+      <*> o
+      .:? "position"
+      <*> (o .:? "homepage" <|> (sequenceA . singleton <$> o .:? "homepage"))
+      <*> o
+      .:? "longDescription"
+   where
+    singleton :: a -> [a]
+    singleton x = [x]
   parseJSON _ = mzero
 
 instance ToJSON PackageMeta where
@@ -118,8 +127,8 @@ instance ToJSON PackageLicense where
 
 instance FromJSON PackageLicense where
   parseJSON js@(Object _) = DetailedLicense <$> parseJSON js
-  parseJSON (String s) = pure . BasicLicense $ s
-  parseJSON _ = mzero
+  parseJSON (   String s) = pure . BasicLicense $ s
+  parseJSON _             = mzero
 
 -- | Detailed representation of a license.
 data LicenseDetails = LicenseDetails
@@ -134,8 +143,15 @@ data LicenseDetails = LicenseDetails
 
 instance FromJSON LicenseDetails where
   parseJSON (Object o) =
-    LicenseDetails <$> o .:? "shortName" <*> o .:? "fullName" <*> o .:? "url" <*>
-    o .:? "spdxId"
+    LicenseDetails
+      <$> o
+      .:? "shortName"
+      <*> o
+      .:? "fullName"
+      <*> o
+      .:? "url"
+      <*> o
+      .:? "spdxId"
   parseJSON _ = mzero
 
 instance ToJSON LicenseDetails where
@@ -148,9 +164,9 @@ newtype KeyedSet a =
 
 instance Foldable KeyedSet where
   {-# INLINE foldr #-}
-  foldr f z (KeyedSet t) = HashMap.foldr (\ acc x -> Set.foldr f x acc) z t
+  foldr f z (KeyedSet t) = HashMap.foldr (\acc x -> Set.foldr f x acc) z t
   {-# INLINE foldl' #-}
-  foldl' f z (KeyedSet t) = HashMap.foldl' (\ acc x -> Set.foldl' f acc x) z t
+  foldl' f z (KeyedSet t) = HashMap.foldl' (\acc x -> Set.foldl' f acc x) z t
 
 
 instance (Semigroup (KeyedSet a), Ord a) => Monoid (KeyedSet a) where
@@ -163,20 +179,19 @@ type PackageSet = KeyedSet Package
 parsePackage :: FromJSON a => Text -> Value -> Parser a
 parsePackage attrPath (Object o) =
   let o' = HashMap.insert "attrPath" (String attrPath) o
-  in parseJSON (Object o')
+  in  parseJSON (Object o')
 parsePackage _ x = typeMismatch "ParsePackage" x
 
 instance FromJSON (KeyedSet Package) where
-  parseJSON (Object o)
-    -- pkgs <- sequenceA (parseJSON <$> (Vec.fromList . HashMap.elems $ o))
-   = do
-    pkgs <-
-      sequenceA . Vec.fromList . HashMap.elems $
-      HashMap.mapWithKey parsePackage o
+  parseJSON (Object o) = do
+    pkgs <- sequenceA . Vec.fromList . HashMap.elems $ HashMap.mapWithKey
+      parsePackage
+      o
     pure . KeyedSet . foldl' go HashMap.empty $ pkgs
-    where
-      go acc x =
-        HashMap.insertWith Set.union (packageName x) (Set.singleton x) acc
+    -- pkgs <- sequenceA (parseJSON <$> (Vec.fromList . HashMap.elems $ o))
+   where
+    go acc x =
+      HashMap.insertWith Set.union (packageName x) (Set.singleton x) acc
   parseJSON x = typeMismatch "PackageSet" x
 
 -- | Parse package informataion out of a JSON file. The expected format of the
@@ -185,10 +200,7 @@ instance FromJSON (KeyedSet Package) where
 -- > nix-env -qaP --json '*'
 --
 -- command. The result is a hash map keyed off packages' name.
-parsePackages ::
-     (MonadError NvsError m, MonadIO m)
-  => FilePath
-  -> m PackageSet
+parsePackages :: (MonadError NvsError m, MonadIO m) => FilePath -> m PackageSet
 parsePackages path = do
   s <- liftIO . Bytes.readFile $ path
   let mRet = eitherDecodeStrict s
@@ -201,4 +213,4 @@ packageUrl :: Package -> Maybe Text
 packageUrl pkg =
   let position = packageMetaPosition . packageMeta $ pkg
       path = fst . Text.breakOn ":" . snd . Text.breakOn "/pkgs" <$> position
-  in ("https://github.com/NixOS/nixpkgs/blob/release-17.03/" <>) <$> path
+  in  ("https://github.com/NixOS/nixpkgs/blob/release-17.03/" <>) <$> path

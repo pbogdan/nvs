@@ -16,13 +16,14 @@ nixpkgs maintainers that's been extracted from nixpkgs tree.
 -}
 module Nixpkgs.Maintainers
   ( Maintainer(..)
-  ) where
+  )
+where
 
-import           Protolude hiding (handle)
+import           Protolude               hiding ( handle )
 
 import           Data.Aeson
 import           Data.Aeson.Casing
-import           Data.String (String)
+import           Data.String                    ( String )
 
 -- | Represents information about nixpkgs maintainer. Given the following entry
 -- in lib/maintainers.nix:
@@ -47,5 +48,6 @@ instance FromJSON Maintainer where
     genericParseJSON $ aesonDrop (length ("Maintainer" :: String)) camelCase
 
 instance ToJSON Maintainer where
-  toJSON = genericToJSON $ aesonDrop (length ("Maintainer" :: String)) camelCase
+  toJSON =
+    genericToJSON $ aesonDrop (length ("Maintainer" :: String)) camelCase
 
