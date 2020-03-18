@@ -9,7 +9,6 @@ homepage: https://github.com/pbogdan/nvs
 author: Piotr Bogdan
 data-files:
     templates/*.ede
-    data/*.yaml
 
 library
     exposed-modules:
@@ -55,7 +54,6 @@ library
         json-stream >= 0.4.1,
         time -any,
         resourcet -any,
-
         attoparsec,
         nix-derivation,
         regex-applicative,
