@@ -9,7 +9,6 @@ homepage: https://github.com/pbogdan/nvs
 author: Piotr Bogdan
 data-files:
     templates/*.ede
-    data/*.yaml
 
 library
     exposed-modules:
@@ -38,8 +37,6 @@ library
         lucid >=2.9.8 && <2.10,
         protolude >=0.2,
         optparse-applicative >=0.13,
-        shell-cmd >=0.2 && <0.3,
-        temporary >=1.2,
         monad-logger >=0.3 && <0.4,
         aeson-casing >=0.1,
         ede >=0.2 && <0.3,
@@ -51,9 +48,14 @@ library
         streaming >= 0.1.4,
         streaming-bytestring >= 0.1.4,
         streaming-utils >= 0.1.4,
+        system-filepath,
         json-stream >= 0.4.1,
         time -any,
-        resourcet -any
+        resourcet -any,
+        attoparsec,
+        nix-derivation,
+        regex-applicative,
+        stm
     default-language: Haskell2010
     default-extensions: OverloadedStrings NoImplicitPrelude
     hs-source-dirs: src
@@ -92,5 +94,4 @@ test-suite nvs-test
     default-extensions: OverloadedStrings NoImplicitPrelude
     hs-source-dirs: test
     other-modules:
-        PackagesSpec
     ghc-options: -Wall -threaded -rtsopts -with-rtsopts=-N

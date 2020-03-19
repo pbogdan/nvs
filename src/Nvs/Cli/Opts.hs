@@ -25,17 +25,23 @@ import           Options.Applicative
 
 -- | Command line options for the CLI.
 data Opts = Opts
-  { optsNvdFeeds :: [Text]
-  , optsNixpkgs :: Text
-  , optsOutput :: Output
+  { optsOutput :: Output
   , optsVerbose :: Bool
+  , optsNvdFeeds :: [Text]
+  , optsDerivation :: Text
   } deriving (Eq, Show)
 
 -- | Parser for the command line options.
 parseOptions :: Parser Opts
 parseOptions =
   Opts
-    <$> some
+    <$> asum
+          [ flag' HTML     (long "html" <> help "Render HTML.")
+          , flag' Markdown (long "markdown" <> help "Render Markdown.")
+          , flag' JSON     (long "json" <> help "Render JSON.")
+          ]
+    <*> switch (long "verbose" <> help "Verbose output.")
+    <*> some
           (strOption
             (  long "nvd-feed"
             <> metavar "nvd-feed"
@@ -43,17 +49,7 @@ parseOptions =
                  "Path to a copy of the NVD JSON feed. May be specified multiple times."
             )
           )
-    <*> (strOption
-          (long "nixpkgs" <> metavar "nixpkgs" <> help
-            "Path to nixpkgs, accepts paths compatible with NIX_PATH."
-          )
-        )
-    <*> asum
-          [ flag' HTML     (long "html" <> help "Render HTML.")
-          , flag' Markdown (long "markdown" <> help "Render Markdown.")
-          , flag' JSON     (long "json" <> help "Render JSON.")
-          ]
-    <*> switch (long "verbose" <> help "Verbose output.")
+    <*> argument str (metavar "derivation")
 
 -- | Convenience function to add @--help@ support given a parser and
 -- description.

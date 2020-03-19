@@ -146,9 +146,9 @@ instance FromJSON (Cve CpeConfiguration) where
 
 cvesForPackage
   :: (Affects a, Ord a)
-  => Package
+  => Package b
   -> HashMap PackageName (Set (Cve a))
-  -> (Package, Set (Cve a))
+  -> (Package b, Set (Cve a))
 cvesForPackage pkg cves =
   let pVersion = packageVersion pkg
       pName    = packageName pkg
@@ -169,16 +169,16 @@ cvesForPackage pkg cves =
 
 vulnsFor
   :: (Affects a, Affects a, Ord a)
-  => PackageSet
+  => PackageSet CveId
   -> HashMap PackageName (Set (Cve a))
-  -> [(Package, Set (Cve a))]
+  -> [(Package CveId, Set (Cve a))]
 vulnsFor pkgs cves = foldl' (\acc pkg -> cvesForPackage pkg cves : acc) [] pkgs
 
 vulnsFor'
   :: (Affects a, Affects a, Ord a, Show a)
   => Cve a
-  -> PackageSet
-  -> [(Package, Set (Cve a))]
+  -> PackageSet CveId
+  -> [(Package CveId, Set (Cve a))]
 vulnsFor' cve (KeyedSet pkgs) =
   let candidates =
           foldl' (\m n -> HashMap.insert n (Set.singleton cve) m) HashMap.empty

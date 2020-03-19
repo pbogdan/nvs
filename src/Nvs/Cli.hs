@@ -25,8 +25,6 @@ import           Nvs.Cli.Opts
 import           Nvs.Report
 import           Nvs.Types
 import           Options.Applicative            ( execParser )
-import           Shell
-import           System.IO.Temp
 
 -- | Default main function.
 defaultMain :: IO ()
@@ -37,18 +35,11 @@ run :: Opts -> IO ()
 run opts =
   runStderrLoggingT
     $ filterLogger (\_ lvl -> optsVerbose opts || (lvl >= LevelWarn))
-    $ withSystemTempDirectory "nvs"
-    $ \tmpDir -> do
+    $ do
         ret <- runExceptT $ do
-          logInfoN "Generating packages.json"
-          generatePackages (optsNixpkgs opts) tmpDir
-            `catchE` (throwE . flip
-                       ShellCommandError
-                       "Preparing packages.json failed"
-                     )
           logInfoN "Generating report"
           report (map toS (optsNvdFeeds opts))
-                 (toS tmpDir <> "/packages.json")
+                 (toS . optsDerivation $ opts)
                  (optsOutput opts)
         case ret of
           Left (ShellCommandError _ msg) -> do
@@ -59,16 +50,3 @@ run opts =
             liftIO exitFailure
           Right _ -> liftIO exitSuccess
 
-generatePackages
-  :: (MonadIO m, MonadLogger m, MonadError ExitCode m)
-  => Text
-  -> FilePath
-  -> m ()
-generatePackages nixpkgs tmpDir = shell_ "nix-env" $ do
-  switch "--arg"
-  raw "config '{}'"
-  switch "-qaP"
-  switch "--json"
-  arg "*"
-  option "-f" nixpkgs
-  raw $ " > " <> toS tmpDir <> "/packages.json"

@@ -1,16 +1,4 @@
 {
-    "shell-cmd": {
-        "branch": "master",
-        "description": "Simple Haskell library for working with shell commands in a more convenient way.",
-        "homepage": null,
-        "owner": "pbogdan",
-        "repo": "shell-cmd",
-        "rev": "debf2f6dd05fd6856168c343a6f698a54329f98a",
-        "sha256": "0qp2i7ghmvkbd2823gvmsgff0mxdxb0cc97lzv4ib2dnfgmnkkvl",
-        "type": "tarball",
-        "url": "https://github.com/pbogdan/shell-cmd/archive/debf2f6dd05fd6856168c343a6f698a54329f98a.tar.gz",
-        "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
-    },
     "unstable": {
         "branch": "nixos-unstable",
         "description": "A read-only mirror of NixOS/nixpkgs tracking the released channels. Send issues and PRs to",

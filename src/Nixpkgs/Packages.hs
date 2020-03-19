@@ -38,12 +38,13 @@ import           Nixpkgs.Packages.Types
 import           Nvs.Types
 
 -- | Main data type for representing package information.
-data Package = Package
+data Package a = Package
   { packageName :: PackageName -- ^ The name of the package
   , packageVersion :: PackageVersion -- ^ The version of the package
+  , packagePatches :: [a]
   } deriving (Eq, Generic, Show)
 
-instance Ord Package where
+instance Ord a => Ord (Package a) where
   compare p1 p2 =
     let v1 = packageVersion p1
         v2 = packageVersion p2
@@ -51,14 +52,15 @@ instance Ord Package where
         n2 = packageName p2
     in  if v1 == v2 && n1 == n2 then EQ else v1 `compare` v2
 
-instance FromJSON Package where
+instance FromJSON (Package a) where
   parseJSON (Object o) =
     Package
       <$> (parsePackageName <$> o .: "name")
       <*> (parsePackageVersion <$> o .: "name")
+      <*> pure []
   parseJSON _ = mzero
 
-instance ToJSON Package where
+instance ToJSON a => ToJSON (Package a) where
   toJSON = genericToJSON $ aesonDrop (length ("Package" :: String)) camelCase
 
 newtype KeyedSet a =
@@ -77,7 +79,7 @@ instance (Semigroup (KeyedSet a), Ord a) => Monoid (KeyedSet a) where
   (KeyedSet a) `mappend` (KeyedSet b) =
     KeyedSet (HashMap.unionWith Set.union a b)
 
-type PackageSet = KeyedSet Package
+type PackageSet a = KeyedSet (Package a)
 
 parsePackage :: FromJSON a => Text -> Value -> Parser a
 parsePackage attrPath (Object o) =
@@ -85,7 +87,7 @@ parsePackage attrPath (Object o) =
   in  parseJSON (Object o')
 parsePackage _ x = typeMismatch "ParsePackage" x
 
-instance FromJSON (KeyedSet Package) where
+instance Ord a => FromJSON (KeyedSet (Package a)) where
   parseJSON (Object o) = do
     pkgs <- sequenceA . Vec.fromList . HashMap.elems $ HashMap.mapWithKey
       parsePackage
@@ -102,7 +104,8 @@ instance FromJSON (KeyedSet Package) where
 -- > nix-env -qaP --json '*'
 --
 -- command. The result is a hash map keyed off packages' name.
-parsePackages :: (MonadError NvsError m, MonadIO m) => FilePath -> m PackageSet
+parsePackages
+  :: (Ord a, MonadError NvsError m, MonadIO m) => FilePath -> m (PackageSet a)
 parsePackages path = do
   s <- liftIO . Bytes.readFile $ path
   let mRet = eitherDecodeStrict s
