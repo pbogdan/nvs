@@ -19,7 +19,6 @@ library
         Nvs.Cli.Opts
         Nvs.Files
         Nvs.Report
-        Nvs.Types
         Nvd.Cve
         Nvd.Cve.Types
         Nvd.Cpe

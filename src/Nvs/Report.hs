@@ -63,7 +63,6 @@ import           Nixpkgs.Packages.Types
 import           Nvd.Cpe.Configuration
 import           Nvd.Cve
 import           Nvs.Files
-import           Nvs.Types
 import qualified Streaming.Prelude             as Stream
                                          hiding ( readFile )
 import           Text.EDE
@@ -88,7 +87,7 @@ instance (ToJSON a, ToJSON b) => ToJSON (CveWithPackage a b) where
     genericToJSON $ aesonDrop (length ("_CveWithPackage" :: String)) camelCase
 
 report
-  :: (MonadError NvsError m, MonadLogger m, MonadIO m)
+  :: (MonadLogger m, MonadIO m)
   => [FilePath] -- ^ path to NVD JSON feed
   -> FilePath -- ^ path to packages.json file
   -> Output -- ^ what type of output to generate

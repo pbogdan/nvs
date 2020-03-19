@@ -19,7 +19,6 @@ module Nixpkgs.Packages
   ( Package(..)
   , KeyedSet(..)
   , PackageSet
-  , parsePackages
   )
 where
 
@@ -27,15 +26,11 @@ import           Protolude               hiding ( packageName )
 
 import           Data.Aeson
 import           Data.Aeson.Casing
-import           Data.Aeson.Types
-import qualified Data.ByteString               as Bytes
 import           Data.HashMap.Strict            ( HashMap )
 import qualified Data.HashMap.Strict           as HashMap
 import qualified Data.Set                      as Set
 import           Data.String                    ( String )
-import qualified Data.Vector                   as Vec
 import           Nixpkgs.Packages.Types
-import           Nvs.Types
 
 -- | Main data type for representing package information.
 data Package a = Package
@@ -69,10 +64,9 @@ newtype KeyedSet a =
 
 instance Foldable KeyedSet where
   {-# INLINE foldr #-}
-  foldr f z (KeyedSet t) = HashMap.foldr (\acc x -> Set.foldr f x acc) z t
+  foldr f z (KeyedSet t) = HashMap.foldr (flip (Set.foldr f)) z t
   {-# INLINE foldl' #-}
-  foldl' f z (KeyedSet t) = HashMap.foldl' (\acc x -> Set.foldl' f acc x) z t
-
+  foldl' f z (KeyedSet t) = HashMap.foldl' (Set.foldl' f) z t
 
 instance (Semigroup (KeyedSet a), Ord a) => Monoid (KeyedSet a) where
   mempty = KeyedSet HashMap.empty
@@ -80,33 +74,3 @@ instance (Semigroup (KeyedSet a), Ord a) => Monoid (KeyedSet a) where
     KeyedSet (HashMap.unionWith Set.union a b)
 
 type PackageSet a = KeyedSet (Package a)
-
-parsePackage :: FromJSON a => Text -> Value -> Parser a
-parsePackage attrPath (Object o) =
-  let o' = HashMap.insert "attrPath" (String attrPath) o
-  in  parseJSON (Object o')
-parsePackage _ x = typeMismatch "ParsePackage" x
-
-instance Ord a => FromJSON (KeyedSet (Package a)) where
-  parseJSON (Object o) = do
-    pkgs <- sequenceA . Vec.fromList . HashMap.elems $ HashMap.mapWithKey
-      parsePackage
-      o
-    pure . KeyedSet . foldl' go HashMap.empty $ pkgs
-   where
-    go acc x =
-      HashMap.insertWith Set.union (packageName x) (Set.singleton x) acc
-  parseJSON x = typeMismatch "PackageSet" x
-
--- | Parse package informataion out of a JSON file. The expected format of the
--- JSON file is that produced by
---
--- > nix-env -qaP --json '*'
---
--- command. The result is a hash map keyed off packages' name.
-parsePackages
-  :: (Ord a, MonadError NvsError m, MonadIO m) => FilePath -> m (PackageSet a)
-parsePackages path = do
-  s <- liftIO . Bytes.readFile $ path
-  let mRet = eitherDecodeStrict s
-  either (throwError . FileParseError path . toS) return mRet
