@@ -31,13 +31,22 @@ data CpePart
   | Unknown
   deriving (Eq, Ord, Show)
 
+instance ToJSON CpePart where
+  toJSON Application = String "application"
+  toJSON OS          = String "OS"
+  toJSON Hardware    = String "Hardware"
+  toJSON Unknown     = String "unknown"
+
 data CpeValue a
   = Any
   | NA
   | CpeValue Text
   deriving (Eq, Generic, Ord, Show)
 
-instance (ToJSON a) => ToJSON (CpeValue a)
+instance ToJSON (CpeValue a) where
+  toJSON Any          = String "*"
+  toJSON NA           = String "-"
+  toJSON (CpeValue t) = String t
 
 data CpeUri = CpeUri
   { cpePart :: CpePart
@@ -54,7 +63,6 @@ instance FromJSON CpeUri where
   parseJSON x          = typeMismatch "CpeUri" x
 
 instance ToJSON CpeUri where
-  toJSON _ = object []
 
 data Vendor
 data Product
@@ -101,6 +109,7 @@ parseCpeValue p parts =
     "-" -> Right NA
     _   -> Right . CpeValue $ s'
 
+{-# ANN cpeUriSegment ("HLint: ignore Use !!" :: Text) #-}
 cpeUriSegment :: Int -> [Text] -> Either Text Text
 cpeUriSegment i parts =
   let item = head . drop i $ parts

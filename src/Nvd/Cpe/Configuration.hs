@@ -36,10 +36,12 @@ instance FromJSON Op where
   parseJSON x              = typeMismatch "Op" x
 
 instance ToJSON Op where
+  toJSON And = String "AND"
+  toJSON Or  = String "OR"
 
 data Terms a =
   Terms Op [a]
-  deriving (Eq, Functor, Foldable, Traversable, Ord, Show)
+  deriving (Eq, Functor, Foldable, Generic, Traversable, Ord, Show)
 
 queryTerms :: b -> (b -> a -> Bool) -> Terms a -> Bool
 queryTerms y f (Terms op xs) =
@@ -60,7 +62,7 @@ instance FromJSON (Terms Cpe) where
   parseJSON x = typeMismatch "Terms" x
 
 instance ToJSON (Terms Cpe) where
-  toJSON _ = object []
+  toJSON (Terms op xs) = object ["op" .= op, "matches" .= toJSON xs]
 
 data Configuration a
   = Leaf a
