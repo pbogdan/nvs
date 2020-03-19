@@ -13,10 +13,6 @@ let
               appendPatch
                 (doJailbreak ((hself.callHackage "trifecta" "2" {})))
                 ./patches/trifecta-2-ghc882.patch;
-
-            shell-cmd = import sources.shell-cmd {
-              inherit sources compiler;
-            };
           };
         };
       };
@@ -45,4 +41,4 @@ let
 
   nvs = callCabal2nix "nvs" (nix-gitignore.gitignoreSource [] ./.) {};
 in
-nvs
+justStaticExecutables nvs

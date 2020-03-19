@@ -26,24 +26,38 @@ import           Protolude               hiding ( link
                                                 , packageName
                                                 )
 
-import           Control.Concurrent.Async       ( forConcurrently )
+
+import           Control.Concurrent.STM
 import           Control.Monad.Logger
 import           Control.Monad.Trans.Resource   ( runResourceT )
 import           Data.Aeson              hiding ( (.:) )
 import           Data.Aeson.Casing
+import           Data.Attoparsec.Text.Lazy      ( Result(..) )
+import qualified Data.Attoparsec.Text.Lazy     as Parsec
+                                                ( parse )
+import qualified Data.ByteString               as Bytes
 import qualified Data.ByteString.Streaming     as Stream
-                                                ( readFile )
+                                         hiding ( filter
+                                                , map
+                                                )
 import qualified Data.ByteString.Streaming.Aeson
                                                as Stream
+import           Data.Char                      ( isDigit )
+import           Data.Foldable                  ( foldr1 )
+import           Data.HashMap.Strict            ( HashMap )
 import qualified Data.HashMap.Strict           as HashMap
-import           Data.JsonStream.Parser
+import           Data.JsonStream.Parser  hiding ( string )
+import qualified Data.Map                      as Map
 import qualified Data.Set                      as Set
 import           Data.String                    ( String )
+import qualified Data.Text.Lazy.IO             as LazyText
+import           Filesystem.Path.CurrentOS      ( encodeString )
 import           Lucid                   hiding ( for_
                                                 , term
                                                 )
 import           Lucid.Base              hiding ( term )
 import           Lucid.Bootstrap
+import qualified Nix.Derivation                as Derivation
 import           Nixpkgs.Packages
 import           Nixpkgs.Packages.Types
 import           Nvd.Cpe.Configuration
@@ -53,6 +67,8 @@ import           Nvs.Types
 import qualified Streaming.Prelude             as Stream
                                          hiding ( readFile )
 import           Text.EDE
+import           Text.Regex.Applicative
+import           Control.Concurrent.Async       ( forConcurrently )
 
 
 -- | Specifies rendering mode, or more precisely the output format.
@@ -71,26 +87,76 @@ instance (ToJSON a, ToJSON b) => ToJSON (CveWithPackage a b) where
   toJSON =
     genericToJSON $ aesonDrop (length ("_CveWithPackage" :: String)) camelCase
 
--- | Produce a human readable report about CVEs that may be present in the given
--- package set.
---
--- To see how the packages.json and mainers.json files are generated please
--- refer to "Nvs.Cli" module.
 report
   :: (MonadError NvsError m, MonadLogger m, MonadIO m)
   => [FilePath] -- ^ path to NVD JSON feed
   -> FilePath -- ^ path to packages.json file
   -> Output -- ^ what type of output to generate
   -> m ()
-report cvePaths pkgsPath mode = do
-  logInfoN "Parsing packages"
-  pkgs <- parsePackages pkgsPath
+report cvePaths drvPath mode = do
+  seen <- liftIO . newTVarIO $ Set.empty
+  pkgs <-
+    liftIO
+    . newTVarIO
+    $ (HashMap.empty :: HashMap PackageName (Set (Package CveId)))
+  let
+    nofailParseDerivation t =
+      let (Done _ drv) = Parsec.parse Derivation.parseDerivation t in drv
+    collectDerivationInputs :: FilePath -> IO ()
+    collectDerivationInputs path = do
+      t <- LazyText.readFile $ path
+      let
+        drv        = nofailParseDerivation t
+        inputs     = Set.fromList . Map.keys . Derivation.inputDrvs $ drv
+        drvName    = fromMaybe "" . Map.lookup "name" . Derivation.env $ drv
+        isFOD      = Map.member "outputHash" . Derivation.env $ drv
+        pkgName    = parsePackageName drvName
+        pkgVersion = parsePackageVersion drvName
+        drvPatches = fromMaybe "" . Map.lookup "patches" . Derivation.env $ drv
+        patches    = Bytes.split (fromIntegral . ord $ ' ') . toS $ drvPatches
+        cves       = mapMaybe
+          ( (=~ many anySym
+              *> (CveId . toS <$> foldr1
+                   (liftA2 (<>))
+                   [ string "CVE-"
+                   , some (psym isDigit)
+                   , string "-"
+                   , some (psym isDigit)
+                   ]
+                 )
+              <* many anySym
+            )
+          . toS
+          )
+          patches
+      unless (pkgVersion == PackageVersion "" || isFOD) $ do
+        atomically $ modifyTVar'
+          pkgs
+          (HashMap.insertWith
+            Set.union
+            pkgName
+            (Set.singleton (Package pkgName pkgVersion cves))
+          )
+      for_ inputs $ \input -> do
+        (inputSeen :: Bool) <- Set.member input <$> readTVarIO seen
+        return ()
+        unless inputSeen
+          $ (liftIO . collectDerivationInputs . toS . encodeString $ input)
+        atomically $ modifyTVar' seen (Set.insert input)
+  liftIO . collectDerivationInputs $ drvPath
+  foos <- liftIO . readTVarIO $ pkgs
+  let (ex :: [CveId]) = foldr
+        (\cves acc -> (concatMap packagePatches . Set.toList $ cves) ++ acc)
+        []
+        foos
+  -- print ex
   let parser = "CVE_Items" .: arrayOf value :: Parser (Cve CpeConfiguration)
       go path =
         Stream.readFile path
           & Stream.streamParse parser
           & void
-          & Stream.map (\cve -> vulnsFor' cve pkgs)
+          & Stream.filter (\cve -> cveId cve `notElem` ex)
+          & Stream.map (\cve -> vulnsFor' cve (KeyedSet foos))
           & Stream.filter (not . null . filter (not . Set.null . snd))
           & Stream.mconcat_
   logInfoN "Processing the feeds"

@@ -169,16 +169,16 @@ cvesForPackage pkg cves =
 
 vulnsFor
   :: (Affects a, Affects a, Ord a)
-  => PackageSet a
+  => PackageSet CveId
   -> HashMap PackageName (Set (Cve a))
-  -> [(Package a, Set (Cve a))]
+  -> [(Package CveId, Set (Cve a))]
 vulnsFor pkgs cves = foldl' (\acc pkg -> cvesForPackage pkg cves : acc) [] pkgs
 
 vulnsFor'
   :: (Affects a, Affects a, Ord a, Show a)
   => Cve a
-  -> PackageSet a
-  -> [(Package a, Set (Cve a))]
+  -> PackageSet CveId
+  -> [(Package CveId, Set (Cve a))]
 vulnsFor' cve (KeyedSet pkgs) =
   let candidates =
           foldl' (\m n -> HashMap.insert n (Set.singleton cve) m) HashMap.empty
