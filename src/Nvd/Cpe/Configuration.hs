@@ -6,7 +6,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 
 module Nvd.Cpe.Configuration
-  ( Op(..)
+  ( Operand(..)
   , Terms(..)
   , Configuration(..)
   , CpeConfiguration
@@ -25,22 +25,22 @@ import           Nvd.Cpe
 import           Nvd.Cpe.Uri             hiding ( Any )
 import           Nvd.Cve.Types
 
-data Op
+data Operand
   = And
   | Or
   deriving (Eq, Generic, Ord, Show)
 
-instance FromJSON Op where
+instance FromJSON Operand where
   parseJSON (String "AND") = pure And
   parseJSON (String "OR" ) = pure Or
-  parseJSON x              = typeMismatch "Op" x
+  parseJSON x              = typeMismatch "Operand" x
 
-instance ToJSON Op where
+instance ToJSON Operand where
   toJSON And = String "AND"
   toJSON Or  = String "OR"
 
 data Terms a =
-  Terms Op [a]
+  Terms Operand [a]
   deriving (Eq, Functor, Foldable, Generic, Traversable, Ord, Show)
 
 queryTerms :: b -> (b -> a -> Bool) -> Terms a -> Bool
@@ -66,15 +66,15 @@ instance ToJSON (Terms Cpe) where
 
 data Configuration a
   = Leaf a
-  | Branch Op
+  | Branch Operand
            (NonEmpty (Configuration a))
   deriving (Eq, Generic, Foldable, Traversable, Functor, Ord, Show)
 
 instance FromJSON a => FromJSON (Configuration a) where
   parseJSON js@(Object o) = do
     mChildren <- o .:? "children"
-    mOp       <- o .:? "operator"
-    case (mChildren, mOp) of
+    mOperand  <- o .:? "operator"
+    case (mChildren, mOperand) of
       (Nothing, Just _ ) -> Leaf <$> parseJSON js
       (Just cs, Just op) -> Branch <$> pure op <*> parseJSON cs
       (Just _ , Nothing) -> typeMismatch "Configration" js
