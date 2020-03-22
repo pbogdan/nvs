@@ -144,7 +144,7 @@ collectDerivationInputs pkgs seen path = do
       pkgVersion = parsePackageVersion drvName
       drvPatches = fromMaybe "" . Map.lookup "patches" . Derivation.env $ drv
       patches    = Bytes.split (fromIntegral . ord $ ' ') . toS $ drvPatches
-      cves       = mapMaybe
+      cvePatches = mapMaybe
         ( (=~ many anySym
             *> (CveId . toS <$> foldr1
                  (liftA2 (<>))
@@ -161,9 +161,10 @@ collectDerivationInputs pkgs seen path = do
         patches
   unless (pkgVersion == PackageVersion "" || isFOD) $ atomically $ modifyTVar'
     pkgs
-    (HashMap.insertWith Set.union
-                        pkgName
-                        (Set.singleton (Package pkgName pkgVersion cves))
+    (HashMap.insertWith
+      Set.union
+      pkgName
+      (Set.singleton (Package pkgName pkgVersion cvePatches))
     )
   for_ inputs $ \input -> do
     (inputSeen :: Bool) <- Set.member input <$> readTVarIO seen
