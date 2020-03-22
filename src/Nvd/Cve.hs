@@ -168,7 +168,7 @@ cvesForPackage pkg cves =
   in  (pkg, matches)
 
 vulnsFor
-  :: (Affects a, Affects a, Ord a)
+  :: (Affects a, Ord a)
   => PackageSet CveId
   -> HashMap PackageName (Set (Cve a))
   -> [(Package CveId, Set (Cve a))]
