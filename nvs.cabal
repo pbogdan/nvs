@@ -66,7 +66,7 @@ executable nvs
     hs-source-dirs:     app
     default-language:   Haskell2010
     default-extensions: OverloadedStrings NoImplicitPrelude
-    ghc-options:        -Wall -threaded -rtsopts "-with-rtsopts=-N -A32M"
+    ghc-options:        -Wall -threaded -rtsopts "-with-rtsopts=-N"
     build-depends:
         base >=4.9,
         protolude >=0.2,
