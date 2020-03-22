@@ -92,8 +92,8 @@ instance (ToJSON a, ToJSON b) => ToJSON (CveWithPackage a b) where
 
 report
   :: (MonadLogger m, MonadIO m)
-  => [FilePath] -- ^ path to NVD JSON feed
-  -> FilePath -- ^ path to packages.json file
+  => [FilePath] -- ^ paths to NVD JSON feeds
+  -> FilePath -- ^ path to the store derivation to scan
   -> Output -- ^ what type of output to generate
   -> m ()
 report cvePaths drvPath mode = do
