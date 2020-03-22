@@ -53,6 +53,8 @@ import qualified Data.Map                      as Map
 import qualified Data.Set                      as Set
 import           Data.String                    ( String )
 import qualified Data.Text.IO                  as Text
+import qualified Filesystem.Path               as Filesystem
+                                                ( FilePath )
 import           Filesystem.Path.CurrentOS      ( encodeString )
 import           Lucid                   hiding ( for_
                                                 , term
@@ -100,51 +102,7 @@ report cvePaths drvPath mode = do
     liftIO
     . newTVarIO
     $ (HashMap.empty :: HashMap PackageName (Set (Package CveId)))
-  let
-    nofailParseDerivation t =
-      let (Done _ !drv) = Parsec.parse Derivation.parseDerivation t in drv
-    collectDerivationInputs :: FilePath -> IO ()
-    collectDerivationInputs path = do
-      t <- Text.readFile path
-      let
-        drv        = nofailParseDerivation t
-        inputs     = Set.fromList . Map.keys . Derivation.inputDrvs $ drv
-        drvName    = fromMaybe "" . Map.lookup "name" . Derivation.env $ drv
-        isFOD      = Map.member "outputHash" . Derivation.env $ drv
-        pkgName    = parsePackageName drvName
-        pkgVersion = parsePackageVersion drvName
-        drvPatches = fromMaybe "" . Map.lookup "patches" . Derivation.env $ drv
-        patches    = Bytes.split (fromIntegral . ord $ ' ') . toS $ drvPatches
-        cves       = mapMaybe
-          ( (=~ many anySym
-              *> (CveId . toS <$> foldr1
-                   (liftA2 (<>))
-                   [ string "CVE-"
-                   , some (psym isDigit)
-                   , string "-"
-                   , some (psym isDigit)
-                   ]
-                 )
-              <* many anySym
-            )
-          . toS
-          )
-          patches
-      unless (pkgVersion == PackageVersion "" || isFOD)
-        $ atomically
-        $ modifyTVar'
-            pkgs
-            (HashMap.insertWith
-              Set.union
-              pkgName
-              (Set.singleton (Package pkgName pkgVersion cves))
-            )
-      for_ inputs $ \input -> do
-        (inputSeen :: Bool) <- Set.member input <$> readTVarIO seen
-        unless inputSeen
-               (liftIO . collectDerivationInputs . toS . encodeString $ input)
-        atomically $ modifyTVar' seen (Set.insert input)
-  liftIO . collectDerivationInputs $ drvPath
+  liftIO . collectDerivationInputs pkgs seen $ drvPath
   foos <- liftIO . readTVarIO $ pkgs
   let (ex :: [CveId]) = foldr
         (\cves acc -> (concatMap packagePatches . Set.toList $ cves) ++ acc)
@@ -166,6 +124,53 @@ report cvePaths drvPath mode = do
     HTML     -> renderHTML vulns
     Markdown -> renderMarkdown vulns
     JSON     -> renderJSON vulns
+
+nofailParseDerivation :: Text -> Derivation.Derivation
+nofailParseDerivation t =
+  let (Done _ !drv) = Parsec.parse Derivation.parseDerivation t in drv
+
+collectDerivationInputs
+  :: TVar (HashMap PackageName (Set (Package CveId)))
+  -> TVar (Set Filesystem.FilePath)
+  -> FilePath
+  -> IO ()
+collectDerivationInputs pkgs seen path = do
+  t <- Text.readFile path
+  let drv        = nofailParseDerivation t
+      inputs     = Set.fromList . Map.keys . Derivation.inputDrvs $ drv
+      drvName    = fromMaybe "" . Map.lookup "name" . Derivation.env $ drv
+      isFOD      = Map.member "outputHash" . Derivation.env $ drv
+      pkgName    = parsePackageName drvName
+      pkgVersion = parsePackageVersion drvName
+      drvPatches = fromMaybe "" . Map.lookup "patches" . Derivation.env $ drv
+      patches    = Bytes.split (fromIntegral . ord $ ' ') . toS $ drvPatches
+      cves       = mapMaybe
+        ( (=~ many anySym
+            *> (CveId . toS <$> foldr1
+                 (liftA2 (<>))
+                 [ string "CVE-"
+                 , some (psym isDigit)
+                 , string "-"
+                 , some (psym isDigit)
+                 ]
+               )
+            <* many anySym
+          )
+        . toS
+        )
+        patches
+  unless (pkgVersion == PackageVersion "" || isFOD) $ atomically $ modifyTVar'
+    pkgs
+    (HashMap.insertWith Set.union
+                        pkgName
+                        (Set.singleton (Package pkgName pkgVersion cves))
+    )
+  for_ inputs $ \input -> do
+    (inputSeen :: Bool) <- Set.member input <$> readTVarIO seen
+    unless
+      inputSeen
+      (liftIO . collectDerivationInputs pkgs seen . toS . encodeString $ input)
+    atomically $ modifyTVar' seen (Set.insert input)
 
 lol :: [(Package a, Set (Cve b))] -> [(Package a, Cve b)]
 lol = concatMap (uncurry zip . bimap repeat Set.toAscList)
