@@ -11,6 +11,7 @@ Report rendering utilities.
 
 -}
 
+{-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE ScopedTypeVariables #-}
@@ -33,8 +34,8 @@ import           Control.Monad.Logger
 import           Control.Monad.Trans.Resource   ( runResourceT )
 import           Data.Aeson              hiding ( (.:) )
 import           Data.Aeson.Casing
-import           Data.Attoparsec.Text.Lazy      ( Result(..) )
-import qualified Data.Attoparsec.Text.Lazy     as Parsec
+import           Data.Attoparsec.Text           ( IResult(..) )
+import qualified Data.Attoparsec.Text          as Parsec
                                                 ( parse )
 import qualified Data.ByteString               as Bytes
 import qualified Data.ByteString.Streaming     as Stream
@@ -51,7 +52,7 @@ import           Data.JsonStream.Parser  hiding ( string )
 import qualified Data.Map                      as Map
 import qualified Data.Set                      as Set
 import           Data.String                    ( String )
-import qualified Data.Text.Lazy.IO             as LazyText
+import qualified Data.Text.IO                  as Text
 import           Filesystem.Path.CurrentOS      ( encodeString )
 import           Lucid                   hiding ( for_
                                                 , term
@@ -101,10 +102,10 @@ report cvePaths drvPath mode = do
     $ (HashMap.empty :: HashMap PackageName (Set (Package CveId)))
   let
     nofailParseDerivation t =
-      let (Done _ drv) = Parsec.parse Derivation.parseDerivation t in drv
+      let (Done _ !drv) = Parsec.parse Derivation.parseDerivation t in drv
     collectDerivationInputs :: FilePath -> IO ()
     collectDerivationInputs path = do
-      t <- LazyText.readFile path
+      t <- Text.readFile path
       let
         drv        = nofailParseDerivation t
         inputs     = Set.fromList . Map.keys . Derivation.inputDrvs $ drv
