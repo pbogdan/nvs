@@ -14,6 +14,7 @@ Report rendering utilities.
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TupleSections #-}
 {-# LANGUAGE UndecidableInstances #-}
 
 module Nvs.Report
@@ -103,7 +104,7 @@ report cvePaths drvPath mode = do
       let (Done _ drv) = Parsec.parse Derivation.parseDerivation t in drv
     collectDerivationInputs :: FilePath -> IO ()
     collectDerivationInputs path = do
-      t <- LazyText.readFile $ path
+      t <- LazyText.readFile path
       let
         drv        = nofailParseDerivation t
         inputs     = Set.fromList . Map.keys . Derivation.inputDrvs $ drv
@@ -128,19 +129,19 @@ report cvePaths drvPath mode = do
           . toS
           )
           patches
-      unless (pkgVersion == PackageVersion "" || isFOD) $ do
-        atomically $ modifyTVar'
-          pkgs
-          (HashMap.insertWith
-            Set.union
-            pkgName
-            (Set.singleton (Package pkgName pkgVersion cves))
-          )
+      unless (pkgVersion == PackageVersion "" || isFOD)
+        $ atomically
+        $ modifyTVar'
+            pkgs
+            (HashMap.insertWith
+              Set.union
+              pkgName
+              (Set.singleton (Package pkgName pkgVersion cves))
+            )
       for_ inputs $ \input -> do
         (inputSeen :: Bool) <- Set.member input <$> readTVarIO seen
-        return ()
         unless inputSeen
-          $ (liftIO . collectDerivationInputs . toS . encodeString $ input)
+               (liftIO . collectDerivationInputs . toS . encodeString $ input)
         atomically $ modifyTVar' seen (Set.insert input)
   liftIO . collectDerivationInputs $ drvPath
   foos <- liftIO . readTVarIO $ pkgs
@@ -166,7 +167,7 @@ report cvePaths drvPath mode = do
     JSON     -> renderJSON vulns
 
 lol :: [(Package a, Set (Cve b))] -> [(Package a, Cve b)]
-lol = concatMap (uncurry zip . first repeat . second Set.toAscList)
+lol = concatMap (uncurry zip . bimap repeat Set.toAscList)
 
 renderHTML :: MonadIO m => [(Package a, Set (Cve b))] -> m ()
 renderHTML vulns = putText . toS . renderText $ do
@@ -189,25 +190,24 @@ renderHTML vulns = putText . toS . renderText $ do
         th_ "Severity"
       tbody_
         $ for_ (sortBy (compare `on` cvePublished . snd) $ lol vulns)
-        $ \(pkg, cve) -> do
-            tr_ $ do
-              td_ $ do
-                let pName = packageName pkg
-                    html  = toHtml . displayPackageName $ pName
-                html
-              td_ (toHtml . displayPackageVersion . packageVersion $ pkg)
-              td_
-                (a_
-                  [ href_
-                    (  "https://nvd.nist.gov/vuln/detail/"
-                    <> (displayCveId . cveId $ cve)
-                    )
-                  , target_ "blank"
-                  ]
-                  (toHtml . displayCveId . cveId $ cve)
-                )
-              td_ (toHtml . cveDescription $ cve)
-              td_ (renderSeverity . cveSeverity $ cve)
+        $ \(pkg, cve) -> tr_ $ do
+            td_ $ do
+              let pName = packageName pkg
+                  html  = toHtml . displayPackageName $ pName
+              html
+            td_ (toHtml . displayPackageVersion . packageVersion $ pkg)
+            td_
+              (a_
+                [ href_
+                  (  "https://nvd.nist.gov/vuln/detail/"
+                  <> (displayCveId . cveId $ cve)
+                  )
+                , target_ "blank"
+                ]
+                (toHtml . displayCveId . cveId $ cve)
+              )
+            td_ (toHtml . cveDescription $ cve)
+            td_ (renderSeverity . cveSeverity $ cve)
 
 renderSeverity :: Monad m => Maybe Severity -> HtmlT m ()
 renderSeverity severity =
@@ -231,10 +231,7 @@ renderMarkdown vulns = do
   let cves' =
         map (uncurry CveWithPackage)
           . sortBy (compare `on` cveId . fst)
-          . concatMap
-              ( (\(p, cves) -> map (\cve -> (cve, p)) cves)
-              . second Set.toAscList
-              )
+          . concatMap ((\(p, cves) -> map (, p) cves) . second Set.toAscList)
           $ vulns
       Just env =
         fromValue . toJSON . HashMap.fromList $ [("cves" :: Text, cves')]
@@ -252,9 +249,6 @@ renderJSON vulns = do
   let cves' =
         map (uncurry CveWithPackage)
           . sortBy (compare `on` cveId . fst)
-          . concatMap
-              ( (\(p, cves) -> map (\cve -> (cve, p)) cves)
-              . second Set.toAscList
-              )
+          . concatMap ((\(p, cves) -> map (, p) cves) . second Set.toAscList)
           $ vulns
   putText . toS . encode $ cves'
