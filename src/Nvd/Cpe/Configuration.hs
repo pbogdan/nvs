@@ -76,8 +76,8 @@ instance FromJSON a => FromJSON (Configuration a) where
     case (mChildren, mOperand) of
       (Nothing, Just _ ) -> Leaf <$> parseJSON js
       (Just cs, Just op) -> Branch <$> pure op <*> parseJSON cs
-      (Just _ , Nothing) -> typeMismatch "Configration" js
-      (Nothing, Nothing) -> typeMismatch "Configration" js
+      (Just _ , Nothing) -> typeMismatch "Configuration" js
+      (Nothing, Nothing) -> typeMismatch "Configuration" js
   parseJSON x = typeMismatch "Configuration" x
 
 instance ToJSON a => ToJSON (Configuration a) where
