@@ -23,7 +23,6 @@ dist-*
 .virthualenv
 TAGS
 *.ps
-ngx-top
-ngx-top-gen
 /result
 /TODO.md
+/report*
