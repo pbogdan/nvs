@@ -39,6 +39,14 @@ let
     nix-gitignore
     ;
 
-  nvs = callCabal2nix "nvs" (nix-gitignore.gitignoreSource [] ./.) {};
+  extra-source-excludes = [
+    "/.envrc"
+    "/shell.nix"
+    "/wrapper.nix"
+  ];
+  nvs = callCabal2nix
+    "nvs"
+    (nix-gitignore.gitignoreSource extra-source-excludes ./.)
+    {};
 in
 justStaticExecutables nvs
