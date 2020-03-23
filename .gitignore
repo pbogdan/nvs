@@ -26,3 +26,6 @@ TAGS
 /result
 /TODO.md
 /report*
+/feeds/*.json
+/feeds/*.sh
+
