@@ -9,7 +9,6 @@ module Nvd.Cpe.Configuration
   ( Operand(..)
   , Terms(..)
   , Configuration(..)
-  , CpeConfiguration
   )
 where
 
@@ -43,8 +42,8 @@ data Terms a =
   Terms Operand [a]
   deriving (Eq, Functor, Foldable, Generic, Traversable, Ord, Show)
 
-queryTerms :: b -> (b -> a -> Bool) -> Terms a -> Bool
-queryTerms y f (Terms op xs) =
+queryTerms :: (b -> a -> Bool) -> b -> Terms a -> Bool
+queryTerms f y (Terms op xs) =
   let ys = map (f y) xs
   in  case op of
         And -> getAll . foldMap All $ ys
@@ -83,23 +82,19 @@ instance FromJSON a => FromJSON (Configuration a) where
 
 instance ToJSON a => ToJSON (Configuration a) where
 
-type CpeTerms = Terms Cpe
-
-cpeTermsPackages :: CpeTerms -> [PackageName]
+cpeTermsPackages :: Terms Cpe -> [PackageName]
 cpeTermsPackages = catMaybes . foldr go []
  where
   go :: Cpe -> [Maybe PackageName] -> [Maybe PackageName]
   go cpe acc = (cpeUriPackageName . cpeCpeUri $ cpe) : acc
 
-type CpeConfiguration = Configuration CpeTerms
-
-instance Affects CpeConfiguration where
+instance Affects (Configuration (Terms Cpe)) where
   packages   = foldMap cpeTermsPackages
   isAffected = flip cpeConfigurationMatch
 
 runCpeQueries
-  :: b -> (b -> Cpe -> Bool) -> CpeConfiguration -> Configuration Bool
-runCpeQueries x f c = runIdentity $ for c $ Identity . queryTerms x f
+  :: (b -> Cpe -> Bool) -> b -> Configuration (Terms Cpe) -> Configuration Bool
+runCpeQueries f x c = runIdentity $ for c $ Identity . queryTerms f x
 
 collapse :: Configuration Bool -> Bool
 collapse (Leaf x) = x
@@ -109,27 +104,28 @@ collapse (Branch op xs) =
         And -> getAll . foldMap All $ ys
         Or  -> getAny . foldMap Any $ ys
 
-queryCpeConfiguration :: b -> (b -> Cpe -> Bool) -> CpeConfiguration -> Bool
-queryCpeConfiguration x f = collapse . runCpeQueries x f
+queryCpeConfiguration
+  :: (b -> Cpe -> Bool) -> b -> Configuration (Terms Cpe) -> Bool
+queryCpeConfiguration f x = collapse . runCpeQueries f x
 
 cpeConfigurationMatch
-  :: (PackageName, PackageVersion) -> CpeConfiguration -> Bool
+  :: (PackageName, PackageVersion) -> Configuration (Terms Cpe) -> Bool
 cpeConfigurationMatch pkg cfg =
   let fn = if ln == 1 then cpeMatchExact else cpeMatchExact
       ln = foldr (\terms acc -> length terms + acc) 0 cfg
   in  if isReleaseSeries cfg
         then seriesMatch pkg cfg
-        else queryCpeConfiguration pkg (go fn) cfg
+        else queryCpeConfiguration (go fn) pkg cfg
  where
   go fn pkg' cpe = case fn pkg' cpe of
     Just True  -> True
     Just False -> False
     Nothing    -> False
 
-isReleaseSeries :: CpeConfiguration -> Bool
+isReleaseSeries :: Configuration (Terms Cpe) -> Bool
 isReleaseSeries = getAll . foldMap goCfg
  where
-  goCfg :: CpeTerms -> All
+  goCfg :: Terms Cpe -> All
   goCfg terms = foldMap goTerms terms <> All (sameNames terms) <> All
     ((length . allNames $ terms) > 1)
   goTerms :: Cpe -> All
@@ -137,26 +133,27 @@ isReleaseSeries = getAll . foldMap goCfg
     let previousVersions = fromMaybe False (cpePreviousVersions cpe)
     in  All previousVersions
 
-allNames :: CpeTerms -> [PackageName]
+allNames :: Terms Cpe -> [PackageName]
 allNames =
   catMaybes
     . foldr (\cpe acc -> (cpeUriPackageName . cpeCpeUri $ cpe) : acc) mempty
 
-sameNames :: CpeTerms -> Bool
+sameNames :: Terms Cpe -> Bool
 sameNames terms = (length . nub $ allNames terms) == 1
 
-allVersions :: CpeTerms -> [PackageVersion]
+allVersions :: Terms Cpe -> [PackageVersion]
 allVersions =
   catMaybes
     . foldr (\cpe acc -> (cpeUriPackageVersion . cpeCpeUri $ cpe) : acc) mempty
 
-seriesMatch :: (PackageName, PackageVersion) -> CpeConfiguration -> Bool
+seriesMatch
+  :: (PackageName, PackageVersion) -> Configuration (Terms Cpe) -> Bool
 seriesMatch pkg@(_, version) cfg =
   let vs        = foldMap allVersions cfg
       candidate = versionCandidate version vs
   in  case candidate of
         Nothing -> False
-        Just v  -> queryCpeConfiguration pkg (go v) cfg
+        Just v  -> queryCpeConfiguration (go v) pkg cfg
  where
   go :: PackageVersion -> (PackageName, PackageVersion) -> Cpe -> Bool
   go v pkg' cpe =

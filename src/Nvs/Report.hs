@@ -16,6 +16,7 @@ import           Protolude               hiding ( link
                                                 )
 
 
+import           Control.Concurrent.Async       ( forConcurrently )
 import           Control.Concurrent.STM
 import           Control.Monad.Logger
 import           Control.Monad.Trans.Resource   ( runResourceT )
@@ -51,6 +52,7 @@ import           Lucid.Bootstrap
 import qualified Nix.Derivation                as Derivation
 import           Nixpkgs.Packages
 import           Nixpkgs.Packages.Types
+import           Nvd.Cpe
 import           Nvd.Cpe.Configuration
 import           Nvd.Cve
 import           Nvs.Files
@@ -58,7 +60,6 @@ import qualified Streaming.Prelude             as Stream
                                          hiding ( readFile )
 import           Text.EDE
 import           Text.Regex.Applicative
-import           Control.Concurrent.Async       ( forConcurrently )
 
 data Output
   = HTML
@@ -94,7 +95,8 @@ report cvePaths drvPath mode = do
         []
         foos
   -- print ex
-  let parser = "CVE_Items" .: arrayOf value :: Parser (Cve CpeConfiguration)
+  let parser =
+        "CVE_Items" .: arrayOf value :: Parser (Cve (Configuration (Terms Cpe)))
       go path =
         Stream.readFile path
           & Stream.streamParse parser
