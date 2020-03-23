@@ -1,16 +1,3 @@
-{-|
-Module      : Nixpkgs.Packages.Types
-Description : Common package related types and utilities.
-Copyright   : (c) Piotr Bogdan, 2017
-License     : BSD3
-Maintainer  : ppbogdan@gmail.com
-Stability   : experimental
-Portability : Unknown
-
-Common package related types and utilities.
-
--}
-
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 

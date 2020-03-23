@@ -1,16 +1,3 @@
-{-|
-Module      : Nvs.Cli.Opts
-Description : Command line arguments parser for nvs command line interface.
-Copyright   : (c) Piotr Bogdan, 2017
-License     : BSD3
-Maintainer  : ppbogdan@gmail.com
-Stability   : experimental
-Portability : Unknown
-
-Command line arguments parser for nvs command line interface.
-
--}
-
 module Nvs.Cli.Opts
   ( Opts(..)
   , parseOptions

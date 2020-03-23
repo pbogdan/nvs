@@ -1,16 +1,3 @@
-{-|
-Module      : Nvs.Cli
-Description : Command line interface to nvs.
-Copyright   : (c) Piotr Bogdan, 2017
-License     : BSD3
-Maintainer  : ppbogdan@gmail.com
-Stability   : experimental
-Portability : Unknown
-
-Command line interface to nvs.
-
--}
-
 {-# LANGUAGE FlexibleContexts #-}
 
 module Nvs.Cli

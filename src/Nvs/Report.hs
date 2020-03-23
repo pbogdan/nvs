@@ -1,16 +1,3 @@
-{-|
-Module      : Nvs.Report
-Description : Report rendering utilities.
-Copyright   : (c) Piotr Bogdan, 2017
-License     : BSD3
-Maintainer  : ppbogdan@gmail.com
-Stability   : experimental
-Portability : Unknown
-
-Report rendering utilities.
-
--}
-
 {-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE FlexibleContexts #-}
@@ -73,8 +60,6 @@ import           Text.EDE
 import           Text.Regex.Applicative
 import           Control.Concurrent.Async       ( forConcurrently )
 
-
--- | Specifies rendering mode, or more precisely the output format.
 data Output
   = HTML
   | JSON

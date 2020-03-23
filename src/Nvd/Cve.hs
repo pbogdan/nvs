@@ -5,19 +5,6 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
-{-|
-Module      : Nvd.Cve
-Description : Utilities to interface with JSON feeds provided by NVD.
-Copyright   : (c) Piotr Bogdan, 2017
-License     : BSD3
-Maintainer  : ppbogdan@gmail.com
-Stability   : experimental
-Portability : Unknown
-
-Utilities to interface with JSON feeds provided by NVD.
-
--}
-
 module Nvd.Cve
   ( CveId(..)
   , displayCveId
@@ -50,9 +37,6 @@ import           Nvd.Cpe.Configuration
 import           Nvd.Cve.Types
 import           Text.Read                      ( read )
 
--- @TODO: there should be validation of the CVE ID format
-
--- | CVE ID.
 newtype CveId =
   CveId Text
   deriving (Eq, Generic, Show)
@@ -98,15 +82,12 @@ instance FromJSON Severity where
 
 instance ToJSON Severity
 
--- | Representation of a CVE parsed out of NVD feed. Currently only fields
--- directly needed by this project are extracted, with the rest of them
--- discarded.
 data Cve a = Cve
-  { cveId :: CveId -- ^ The ID of the CVE such as CVE-2016-5253.
-  , cveDescription :: Text -- ^ Description of the CVE.
+  { cveId :: CveId
+  , cveDescription :: Text
   , cveSeverity :: Maybe Severity
   , cvePublished :: UTCTime
-  , cveAffects :: [a] -- ^ List of affected vendors and products.
+  , cveAffects :: [a]
   } deriving (Eq, Foldable, Functor, Generic, Ord, Show)
 
 instance Affects a => Affects (Cve a) where

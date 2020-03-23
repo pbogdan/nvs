@@ -1,15 +1,3 @@
-{-|
-Module      : Nixpkgs.Packages
-Description : Utilities to deal with package information extracted from nixpkgs.
-Copyright   : (c) Piotr Bogdan, 2017
-License     : BSD3
-Maintainer  : ppbogdan@gmail.com
-Stability   : experimental
-Portability : Unknown
-
-This module provides simple utilities to work with JSON representation of
-nixpkgs packages.
--}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
@@ -32,10 +20,9 @@ import qualified Data.Set                      as Set
 import           Data.String                    ( String )
 import           Nixpkgs.Packages.Types
 
--- | Main data type for representing package information.
 data Package a = Package
-  { packageName :: PackageName -- ^ The name of the package
-  , packageVersion :: PackageVersion -- ^ The version of the package
+  { packageName :: PackageName
+  , packageVersion :: PackageVersion
   , packagePatches :: [a]
   } deriving (Eq, Generic, Show)
 
