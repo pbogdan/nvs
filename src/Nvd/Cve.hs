@@ -80,7 +80,11 @@ instance FromJSON Severity where
   parseJSON (String "CRITICAL") = pure Critical
   parseJSON x                   = typeMismatch "Severity" x
 
-instance ToJSON Severity
+instance ToJSON Severity where
+  toJSON Low      = String "LOW"
+  toJSON Medium   = String "MEDIUM"
+  toJSON High     = String "HIGH"
+  toJSON Critical = String "CRITICAL"
 
 data Cve a = Cve
   { cveId :: CveId
