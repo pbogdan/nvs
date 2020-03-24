@@ -125,7 +125,7 @@ parseCveCommon x = typeMismatch "parseCveCommon" x
 instance ToJSON a => ToJSON (Cve a) where
   toJSON = genericToJSON $ aesonDrop (length ("Cve" :: String)) camelCase
 
-instance FromJSON (Cve (Configuration (Terms Cpe))) where
+instance FromJSON (Cve (Configuration Cpe)) where
   parseJSON js@(Object o) =
     parseCveCommon js <*> ((o .: "configurations") >>= (.: "nodes"))
   parseJSON _ = mzero

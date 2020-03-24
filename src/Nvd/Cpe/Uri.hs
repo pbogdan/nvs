@@ -5,9 +5,7 @@
 {-# LANGUAGE TypeFamilies #-}
 
 module Nvd.Cpe.Uri
-  ( CpePart(..)
-  , CpeValue(..)
-  , CpeUri(..)
+  ( CpeUri(..)
   , cpeUriMatch
   , cpeUriPackageName
   , cpeUriPackageVersion

@@ -6,50 +6,56 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 
 module Nvd.Cpe.Configuration
-  ( Operand(..)
-  , Terms(..)
+  ( Terms(..)
   , Configuration(..)
   )
 where
 
 import           Protolude
 
-import           Data.Aeson
+import           Control.Arrow                  ( (>>>) )
+import           Data.Aeson                     ( FromJSON(..)
+                                                , ToJSON(..)
+                                                , Value(..)
+                                                , object
+                                                , (.=)
+                                                , (.:)
+                                                , (.:?)
+                                                )
 import           Data.Aeson.Types               ( typeMismatch )
 import           Data.List                      ( nub )
-import qualified Data.List.NonEmpty            as NE
-import           Nixpkgs.Packages.Types
-import           Nixpkgs.Packages.Versions
-import           Nvd.Cpe
-import           Nvd.Cpe.Uri             hiding ( Any )
-import           Nvd.Cve.Types
+import           Nixpkgs.Packages.Types         ( PackageName
+                                                , PackageVersion
+                                                )
+import           Nixpkgs.Packages.Versions      ( versionCandidate )
+import           Nvd.Cpe                        ( Cpe(..)
+                                                , cpeMatch
+                                                , cpeMatchExact
+                                                )
+import           Nvd.Cpe.Uri                    ( cpeUriPackageName
+                                                , cpeUriPackageVersion
+                                                )
+import           Nvd.Cve.Types                  ( Affects(..) )
 
-data Operand
+data Operator
   = And
   | Or
   deriving (Eq, Generic, Ord, Show)
 
-instance FromJSON Operand where
+instance FromJSON Operator where
   parseJSON (String "AND") = pure And
   parseJSON (String "OR" ) = pure Or
-  parseJSON x              = typeMismatch "Operand" x
+  parseJSON x              = typeMismatch "Operator" x
 
-instance ToJSON Operand where
+instance ToJSON Operator where
   toJSON And = String "AND"
   toJSON Or  = String "OR"
 
 data Terms a =
-  Terms Operand [a]
+  Terms Operator [a]
   deriving (Eq, Functor, Foldable, Generic, Traversable, Ord, Show)
 
-queryTerms :: (b -> a -> Bool) -> b -> Terms a -> Bool
-queryTerms f y (Terms op xs) =
-  let ys = map (f y) xs
-  in  case op of
-        And -> getAll . foldMap All $ ys
-        Or  -> getAny . foldMap Any $ ys
-
-instance FromJSON (Terms Cpe) where
+instance FromJSON a => FromJSON (Terms a) where
   parseJSON (Object o) =
     Terms
       <$> o
@@ -60,100 +66,86 @@ instance FromJSON (Terms Cpe) where
           )
   parseJSON x = typeMismatch "Terms" x
 
-instance ToJSON (Terms Cpe) where
+instance ToJSON a => ToJSON (Terms a) where
   toJSON (Terms op xs) = object ["op" .= op, "matches" .= toJSON xs]
 
 data Configuration a
-  = Leaf a
-  | Branch Operand
-           (NonEmpty (Configuration a))
+  = Leaf (Terms a)
+  | Branch (Terms
+           (Configuration a))
   deriving (Eq, Generic, Foldable, Traversable, Functor, Ord, Show)
 
 instance FromJSON a => FromJSON (Configuration a) where
   parseJSON js@(Object o) = do
+    mOperator <- o .:? "operator"
     mChildren <- o .:? "children"
-    mOperand  <- o .:? "operator"
-    case (mChildren, mOperand) of
-      (Nothing, Just _ ) -> Leaf <$> parseJSON js
-      (Just cs, Just op) -> Branch <$> pure op <*> parseJSON cs
-      (Just _ , Nothing) -> typeMismatch "Configuration" js
+    case (mOperator, mChildren) of
+      (Just _ , Nothing) -> Leaf <$> parseJSON js
+      (Just op, Just cs) -> Branch <$> (Terms <$> pure op <*> parseJSON cs)
+      (Nothing, Just _ ) -> typeMismatch "Configuration" js
       (Nothing, Nothing) -> typeMismatch "Configuration" js
   parseJSON x = typeMismatch "Configuration" x
 
 instance ToJSON a => ToJSON (Configuration a) where
 
-cpeTermsPackages :: Terms Cpe -> [PackageName]
-cpeTermsPackages = catMaybes . foldr go []
- where
-  go :: Cpe -> [Maybe PackageName] -> [Maybe PackageName]
-  go cpe acc = (cpeUriPackageName . cpeCpeUri $ cpe) : acc
-
-instance Affects (Configuration (Terms Cpe)) where
-  packages   = foldMap cpeTermsPackages
-  isAffected = flip cpeConfigurationMatch
-
-runCpeQueries
-  :: (b -> Cpe -> Bool) -> b -> Configuration (Terms Cpe) -> Configuration Bool
-runCpeQueries f x c = runIdentity $ for c $ Identity . queryTerms f x
+instance Affects (Configuration Cpe) where
+  packages   = collectNames
+  isAffected = flip match
 
 collapse :: Configuration Bool -> Bool
-collapse (Leaf x) = x
-collapse (Branch op xs) =
-  let ys = NE.map collapse xs
-  in  case op of
-        And -> getAll . foldMap All $ ys
-        Or  -> getAny . foldMap Any $ ys
+collapse (Leaf (Terms op xs)) = case op of
+  And -> getAll . foldMap All $ xs
+  Or  -> getAny . foldMap Any $ xs
+collapse (Branch (Terms op xs)) =
+  let ys = map collapse xs in collapse (Leaf (Terms op ys))
 
-queryCpeConfiguration
-  :: (b -> Cpe -> Bool) -> b -> Configuration (Terms Cpe) -> Bool
-queryCpeConfiguration f x = collapse . runCpeQueries f x
+query :: (b -> a -> Bool) -> b -> Configuration a -> Bool
+query f x = collapse . fmap (f x)
 
-cpeConfigurationMatch
-  :: (PackageName, PackageVersion) -> Configuration (Terms Cpe) -> Bool
-cpeConfigurationMatch pkg cfg =
-  let fn = if ln == 1 then cpeMatchExact else cpeMatchExact
-      ln = foldr (\terms acc -> length terms + acc) 0 cfg
+match :: (PackageName, PackageVersion) -> Configuration Cpe -> Bool
+match pkg cfg =
+  let fn = if length cfg == 1 then cpeMatchExact else cpeMatchExact
   in  if isReleaseSeries cfg
-        then seriesMatch pkg cfg
-        else queryCpeConfiguration (go fn) pkg cfg
+        then releaseSeriesMatch pkg cfg
+        else query (go fn) pkg cfg
  where
   go fn pkg' cpe = case fn pkg' cpe of
     Just True  -> True
     Just False -> False
     Nothing    -> False
 
-isReleaseSeries :: Configuration (Terms Cpe) -> Bool
-isReleaseSeries = getAll . foldMap goCfg
+isReleaseSeries :: Configuration Cpe -> Bool
+isReleaseSeries cfg =
+  getAll
+    . mconcat
+    $ [ foldMap goTerms cfg
+      , All (sameNames cfg)
+      , All ((length . collectNames $ cfg) > 1)
+      ]
  where
-  goCfg :: Terms Cpe -> All
-  goCfg terms = foldMap goTerms terms <> All (sameNames terms) <> All
-    ((length . allNames $ terms) > 1)
   goTerms :: Cpe -> All
   goTerms cpe =
     let previousVersions = fromMaybe False (cpePreviousVersions cpe)
     in  All previousVersions
 
-allNames :: Terms Cpe -> [PackageName]
-allNames =
-  catMaybes
-    . foldr (\cpe acc -> (cpeUriPackageName . cpeCpeUri $ cpe) : acc) mempty
+collectNames :: Configuration Cpe -> [PackageName]
+collectNames =
+  catMaybes . foldr (cpeCpeUri >>> cpeUriPackageName >>> (:)) mempty
 
-sameNames :: Terms Cpe -> Bool
-sameNames terms = (length . nub $ allNames terms) == 1
+collectVersions :: Configuration Cpe -> [PackageVersion]
+collectVersions =
+  catMaybes . foldr ((:) . cpeUriPackageVersion . cpeCpeUri) mempty
 
-allVersions :: Terms Cpe -> [PackageVersion]
-allVersions =
-  catMaybes
-    . foldr (\cpe acc -> (cpeUriPackageVersion . cpeCpeUri $ cpe) : acc) mempty
+sameNames :: Configuration Cpe -> Bool
+sameNames = collectNames >>> nub >>> length >>> (== 1)
 
-seriesMatch
-  :: (PackageName, PackageVersion) -> Configuration (Terms Cpe) -> Bool
-seriesMatch pkg@(_, version) cfg =
-  let vs        = foldMap allVersions cfg
+releaseSeriesMatch :: (PackageName, PackageVersion) -> Configuration Cpe -> Bool
+releaseSeriesMatch pkg@(_, version) cfg =
+  let vs        = collectVersions cfg
       candidate = versionCandidate version vs
   in  case candidate of
         Nothing -> False
-        Just v  -> queryCpeConfiguration (go v) pkg cfg
+        Just v  -> query (go v) pkg cfg
  where
   go :: PackageVersion -> (PackageName, PackageVersion) -> Cpe -> Bool
   go v pkg' cpe =

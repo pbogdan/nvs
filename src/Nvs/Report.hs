@@ -95,8 +95,7 @@ report cvePaths drvPath mode = do
         []
         foos
   -- print ex
-  let parser =
-        "CVE_Items" .: arrayOf value :: Parser (Cve (Configuration (Terms Cpe)))
+  let parser = "CVE_Items" .: arrayOf value :: Parser (Cve (Configuration Cpe))
       go path =
         Stream.readFile path
           & Stream.streamParse parser
