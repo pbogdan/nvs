@@ -138,7 +138,10 @@ cvesForPackage
 cvesForPackage pkg cves =
   let pVersion = packageVersion pkg
       pName    = packageName pkg
-      -- @TODO can get rid of the list here
+      -- @TODO can get rid of the list here; or instead of aliases like it used to be before I
+      -- ripped those out generate additional possible package names, for example:
+      -- firefox-bin -> firefox
+      -- foo-unstable -> foo
       terms    = [pName]
       queries =
           foldr Set.union Set.empty
@@ -161,7 +164,7 @@ vulnsFor
 vulnsFor pkgs cves = foldl' (\acc pkg -> cvesForPackage pkg cves : acc) [] pkgs
 
 vulnsFor'
-  :: (Affects a, Affects a, Ord a, Show a)
+  :: (Affects a, Ord a, Show a)
   => Cve a
   -> PackageSet CveId
   -> [(Package CveId, Set (Cve a))]
