@@ -15,6 +15,8 @@ let
     (range 2002 2019);
 in
 writeScriptBin "nvs" ''
+  #!${pkgs.runtimeShell}
+
   ${nvs}/bin/nvs \
       ${concatMapStringsSep " \\\n    " (feed: "--nvd-feed " + feed) feeds} \
       $@
