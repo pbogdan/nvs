@@ -67,7 +67,7 @@ instance FromJSON a => FromJSON (Terms a) where
   parseJSON x = typeMismatch "Terms" x
 
 instance ToJSON a => ToJSON (Terms a) where
-  toJSON (Terms op xs) = object ["op" .= op, "matches" .= toJSON xs]
+  toJSON (Terms op xs) = object ["operator" .= op, "matches" .= toJSON xs]
 
 data Configuration a
   = Leaf (Terms a)
