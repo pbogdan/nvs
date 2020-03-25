@@ -145,12 +145,18 @@ collectDerivationInputs pkgs seen path = do
         . toS
         )
         patches
-  unless (pkgVersion == PackageVersion "" || isFOD) $ atomically $ modifyTVar'
+  unless (pkgVersion == "" || isFOD) $ atomically $ modifyTVar'
     pkgs
     (HashMap.insertWith
       Set.union
       pkgName
-      (Set.singleton (Package pkgName pkgVersion cvePatches))
+      (Set.singleton
+        (Package { packageName    = pkgName
+                 , packageVersion = pkgVersion
+                 , packagePatches = cvePatches
+                 }
+        )
+      )
     )
   for_ inputs $ \input -> do
     (inputSeen :: Bool) <- Set.member input <$> readTVarIO seen
