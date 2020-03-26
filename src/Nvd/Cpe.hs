@@ -3,7 +3,6 @@
 module Nvd.Cpe
   ( Cpe(..)
   , cpeMatch
-  , cpeMatchExact
   )
 where
 

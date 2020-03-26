@@ -21,16 +21,16 @@ import           Data.String                    ( IsString(..) )
 import qualified Data.Text                     as Text
 import           Data.Versions
 
-newtype PackageName =
-  PackageName Text
-  deriving (Eq, Generic, Hashable, Ord, Show)
+newtype PackageName = PackageName
+  { unPackageName :: Text
+  } deriving (Eq, Generic, Hashable, Ord, Show)
 
 instance FromJSON PackageName where
   parseJSON (String s) = pure . PackageName $ s
   parseJSON _          = mzero
 
 instance ToJSON PackageName where
-  toJSON (PackageName n) = String n
+  toJSON = String . unPackageName
 
 instance IsString PackageName where
   fromString = PackageName . toS
@@ -57,7 +57,7 @@ instance FromJSON PackageVersion where
   parseJSON _          = mzero
 
 instance ToJSON PackageVersion where
-  toJSON (PackageVersion v) = String v
+  toJSON = String . unPackageVersion
 
 instance IsString PackageVersion where
   fromString = PackageVersion . toS

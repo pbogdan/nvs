@@ -32,7 +32,6 @@ import           Nixpkgs.Packages.Types         ( PackageName
 import           Nixpkgs.Packages.Versions      ( versionCandidate )
 import           Nvd.Cpe                        ( Cpe(..)
                                                 , cpeMatch
-                                                , cpeMatchExact
                                                 )
 import           Nvd.Cpe.Uri                    ( cpeUriPackageName
                                                 , cpeUriPackageVersion
@@ -88,23 +87,22 @@ instance FromJSON a => FromJSON (Configuration a) where
   parseJSON x = typeMismatch "Configuration" x
 
 instance ToJSON a => ToJSON (Configuration a) where
+  toJSON (Leaf ts@(Terms _op _xs)) = toJSON ts
+  toJSON (Branch (Terms op xs)) =
+    object ["operator" .= op, "children" .= toJSON xs]
 
 collapse :: Configuration Bool -> Bool
-collapse (Leaf (Terms op xs)) = case op of
-  And -> getAll . foldMap All $ xs
-  Or  -> getAny . foldMap Any $ xs
-collapse (Branch (Terms op xs)) =
-  let ys = map collapse xs in collapse (Leaf (Terms op ys))
+collapse (Leaf   (   Terms And xs )) = and xs
+collapse (Leaf   (   Terms Or  xs )) = or xs
+collapse (Branch ts@(Terms _op _xs)) = collapse (Leaf (collapse <$> ts))
 
 query :: (b -> a -> Bool) -> b -> Configuration a -> Bool
 query f x = collapse . fmap (f x)
 
 match :: (PackageName, PackageVersion) -> Configuration Cpe -> Bool
-match pkg cfg =
-  let fn = if length cfg == 1 then cpeMatchExact else cpeMatchExact
-  in  if isReleaseSeries cfg
-        then releaseSeriesMatch pkg cfg
-        else query (go fn) pkg cfg
+match pkg cfg = if isReleaseSeries cfg
+  then releaseSeriesMatch pkg cfg
+  else query (go cpeMatch) pkg cfg
  where
   go fn pkg' cpe = case fn pkg' cpe of
     Just True  -> True
