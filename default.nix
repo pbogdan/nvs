@@ -1,5 +1,6 @@
 { sources ? (import ./nix/sources.nix)
 , compiler ? "ghc882"
+, profiling ? false
 }:
 let
   overlay = self: super: {
@@ -32,6 +33,8 @@ let
     shellFor
     ;
   inherit (pkgs.haskell.lib)
+    enableLibraryProfiling
+    enableExecutableProfiling
     justStaticExecutables
     ;
   inherit (pkgs)
@@ -49,4 +52,7 @@ let
     (nix-gitignore.gitignoreSource extra-source-excludes ./.)
     {};
 in
-justStaticExecutables nvs
+if profiling then
+  enableExecutableProfiling (enableLibraryProfiling nvs)
+else
+  justStaticExecutables nvs
