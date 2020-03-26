@@ -17,6 +17,7 @@ library
         Nvs.Cli
         Nvs.Cli.Opts
         Nvs.Files
+        Nvs.Render
         Nvs.Report
         Nvd.Cve
         Nvd.Cpe
