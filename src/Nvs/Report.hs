@@ -12,7 +12,9 @@ import           Protolude               hiding ( link
                                                 )
 
 
-import           Control.Concurrent.Async       ( forConcurrently )
+import           Control.Concurrent.Async       ( forConcurrently_
+                                                , forConcurrently
+                                                )
 import           Control.Concurrent.STM
 import           Control.Monad.Logger
 import           Control.Monad.Trans.Resource   ( runResourceT )
@@ -113,13 +115,13 @@ collectDerivationInputs path = do
   go pkgs seen file = do
     t <- Text.readFile file
     let drv        = nofailParseDerivation t
-        inputs     = Set.fromList . Map.keys . Derivation.inputDrvs $ drv
+        inputs     = Map.keys . Derivation.inputDrvs $ drv
         drvName    = fromMaybe "" . Map.lookup "name" . Derivation.env $ drv
         isFOD      = Map.member "outputHash" . Derivation.env $ drv
         pkgName    = parsePackageName drvName
         pkgVersion = parsePackageVersion drvName
         drvPatches = fromMaybe "" . Map.lookup "patches" . Derivation.env $ drv
-        patches    = Bytes.split (fromIntegral . ord $ ' ') . toS $ drvPatches
+        patchNames = Bytes.split (fromIntegral . ord $ ' ') . toS $ drvPatches
         cvePatches = mapMaybe
           ( (=~ many anySym
               *> (CveId . toS <$> foldr1
@@ -134,7 +136,7 @@ collectDerivationInputs path = do
             )
           . toS
           )
-          patches
+          patchNames
     unless (pkgVersion == "" || isFOD) $ atomically $ modifyTVar'
       pkgs
       (HashMap.insertWith
@@ -148,8 +150,8 @@ collectDerivationInputs path = do
           )
         )
       )
-    for_ inputs $ \input -> do
-      (inputSeen :: Bool) <- Set.member input <$> readTVarIO seen
+    forConcurrently_ inputs $ \input -> do
+      inputSeen <- Set.member input <$> readTVarIO seen
       unless inputSeen $ do
         atomically $ modifyTVar' seen (Set.insert input)
-        liftIO . go pkgs seen . toS . encodeString $ input
+        go pkgs seen . encodeString $ input
