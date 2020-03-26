@@ -19,11 +19,9 @@ library
         Nvs.Files
         Nvs.Report
         Nvd.Cve
-        Nvd.Cve.Types
         Nvd.Cpe
         Nvd.Cpe.Configuration
         Nvd.Cpe.Uri
-
     hs-source-dirs:     src
     other-modules:      Paths_nvs
     default-language:   Haskell2010

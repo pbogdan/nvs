@@ -2,7 +2,6 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE TupleSections #-}
 {-# LANGUAGE UndecidableInstances #-}
 
 module Nvs.Report
@@ -68,8 +67,8 @@ data Output
   deriving (Eq, Show)
 
 data CveWithPackage a b = CveWithPackage
-  { _cveWithPackageCve :: Cve a
-  , _cveWithPackagePackage :: Package b
+  { _cveWithPackagePackage :: Package b
+  , _cveWithPackageCve :: Cve a
   } deriving (Eq, Generic, Show)
 
 instance (ToJSON a, ToJSON b) => ToJSON (CveWithPackage a b) where
@@ -88,24 +87,28 @@ report cvePaths drvPath mode = do
     liftIO
     . newTVarIO
     $ (HashMap.empty :: HashMap PackageName (Set (Package CveId)))
+  logInfoN "Collecting derivation inputs..."
   liftIO . collectDerivationInputs pkgs seen $ drvPath
+  logInfoN "Done!"
   foos <- liftIO . readTVarIO $ pkgs
   let (ex :: [CveId]) = foldr
         (\cves acc -> (concatMap packagePatches . Set.toList $ cves) ++ acc)
         []
         foos
   -- print ex
-  let parser = "CVE_Items" .: arrayOf value :: Parser (Cve (Configuration Cpe))
-      go path =
-        Stream.readFile path
-          & Stream.streamParse parser
-          & void
-          & Stream.filter (\cve -> cveId cve `notElem` ex)
-          & Stream.map (\cve -> vulnsFor' cve (KeyedSet foos))
-          & Stream.filter (not . null . filter (not . Set.null . snd))
-          & Stream.mconcat_
-  logInfoN "Processing the feeds"
+  let
+    parser = "CVE_Items" .: arrayOf value :: Parser (Cve (Configuration Cpe))
+    go path =
+      Stream.readFile path
+        & Stream.streamParse parser
+        & void
+        & Stream.filter (\cve -> cveId cve `notElem` ex)
+        & Stream.map
+            (\cve -> zip (Set.toList . matchMany foos $ cve) (repeat cve))
+        & Stream.mconcat_
+  logInfoN "Processing the feeds..."
   vulns <- mconcat <$> liftIO (forConcurrently cvePaths (runResourceT . go))
+  logInfoN "Done!"
   case mode of
     HTML     -> renderHTML vulns
     Markdown -> renderMarkdown vulns
@@ -115,6 +118,15 @@ nofailParseDerivation :: Text -> Derivation.Derivation
 nofailParseDerivation t =
   let (Done _ !drv) = Parsec.parse Derivation.parseDerivation t in drv
 
+{-
+
+@TODO: fold the tvars into this function as they are an internal detail really
+
+@TODO: create a separate executable to profile this function as parsing derivation is taking way too
+long than what I would expect on paper; indeed it is slower than than streaming gobs of JSON and all
+the matching etc.
+
+-}
 collectDerivationInputs
   :: TVar (HashMap PackageName (Set (Package CveId)))
   -> TVar (Set Filesystem.FilePath)
@@ -160,15 +172,12 @@ collectDerivationInputs pkgs seen path = do
     )
   for_ inputs $ \input -> do
     (inputSeen :: Bool) <- Set.member input <$> readTVarIO seen
-    unless
-      inputSeen
-      (liftIO . collectDerivationInputs pkgs seen . toS . encodeString $ input)
-    atomically $ modifyTVar' seen (Set.insert input)
+    unless inputSeen $ do
+      atomically $ modifyTVar' seen (Set.insert input)
+      liftIO . collectDerivationInputs pkgs seen . toS . encodeString $ input
 
-lol :: [(Package a, Set (Cve b))] -> [(Package a, Cve b)]
-lol = concatMap (uncurry zip . bimap repeat Set.toAscList)
-
-renderHTML :: MonadIO m => [(Package a, Set (Cve b))] -> m ()
+-- @TODO: restore sorting / ordering for HTML & JSON output
+renderHTML :: MonadIO m => [(Package a, Cve b)] -> m ()
 renderHTML vulns = putText . toS . renderText $ do
   doctype_
   head_ $ do
@@ -188,7 +197,7 @@ renderHTML vulns = putText . toS . renderText $ do
         th_ "CVE description"
         th_ "Severity"
       tbody_
-        $ for_ (sortBy (compare `on` cvePublished . snd) $ lol vulns)
+        $ for_ (sortBy (compare `on` cvePublished . snd) vulns)
         $ \(pkg, cve) -> tr_ $ do
             td_ $ do
               let pName = packageName pkg
@@ -225,15 +234,13 @@ renderSeverity severity =
   in  span_ [classes_ ["label", label]] (toHtml text)
 
 renderMarkdown
-  :: (ToJSON a, ToJSON b, MonadIO m) => [(Package a, Set (Cve b))] -> m ()
-renderMarkdown vulns = do
-  let cves' =
-        map (uncurry CveWithPackage)
-          . sortBy (compare `on` cveId . fst)
-          . concatMap ((\(p, cves) -> map (, p) cves) . second Set.toAscList)
-          $ vulns
-      Just env =
-        fromValue . toJSON . HashMap.fromList $ [("cves" :: Text, cves')]
+  :: (ToJSON a, ToJSON b, MonadIO m) => [(Package a, Cve b)] -> m ()
+renderMarkdown cves = do
+  let Just env =
+        fromValue
+          . toJSON
+          . HashMap.fromList
+          $ [("cves" :: Text, map (uncurry CveWithPackage) cves)]
   tpl <- liftIO . eitherParseFile =<< findFile "templates/cves.ede"
   let ret = flip eitherRender env =<< tpl
   case ret of
@@ -242,12 +249,5 @@ renderMarkdown vulns = do
       liftIO exitFailure
     Right out -> putText . toS $ out
 
-renderJSON
-  :: (ToJSON a, ToJSON b, MonadIO m) => [(Package a, Set (Cve b))] -> m ()
-renderJSON vulns = do
-  let cves' =
-        map (uncurry CveWithPackage)
-          . sortBy (compare `on` cveId . fst)
-          . concatMap ((\(p, cves) -> map (, p) cves) . second Set.toAscList)
-          $ vulns
-  putText . toS . encode $ cves'
+renderJSON :: (ToJSON a, ToJSON b, MonadIO m) => [(Package a, Cve b)] -> m ()
+renderJSON = putText . toS . encode . map (uncurry CveWithPackage)

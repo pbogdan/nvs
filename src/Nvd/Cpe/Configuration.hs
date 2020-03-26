@@ -8,6 +8,8 @@
 module Nvd.Cpe.Configuration
   ( Terms(..)
   , Configuration(..)
+  , match
+  , collectNames
   )
 where
 
@@ -35,7 +37,6 @@ import           Nvd.Cpe                        ( Cpe(..)
 import           Nvd.Cpe.Uri                    ( cpeUriPackageName
                                                 , cpeUriPackageVersion
                                                 )
-import           Nvd.Cve.Types                  ( Affects(..) )
 
 data Operator
   = And
@@ -87,10 +88,6 @@ instance FromJSON a => FromJSON (Configuration a) where
   parseJSON x = typeMismatch "Configuration" x
 
 instance ToJSON a => ToJSON (Configuration a) where
-
-instance Affects (Configuration Cpe) where
-  packages   = collectNames
-  isAffected = flip match
 
 collapse :: Configuration Bool -> Bool
 collapse (Leaf (Terms op xs)) = case op of

@@ -10,7 +10,7 @@ module Nvd.Cve
   , displayCveId
   , Severity(..)
   , Cve(..)
-  , vulnsFor'
+  , matchMany
   )
 where
 
@@ -32,10 +32,13 @@ import qualified Data.Text                     as Text
 import           Data.Time
 import qualified Data.Vector                   as Vec
 import           Nixpkgs.Packages
-import           Nvd.Cpe
 import           Nixpkgs.Packages.Types
-import           Nvd.Cpe.Configuration
-import           Nvd.Cve.Types
+import           Nvd.Cpe
+import           Nvd.Cpe.Configuration          ( Configuration )
+import qualified Nvd.Cpe.Configuration         as Configuration
+                                                ( collectNames
+                                                , match
+                                                )
 import           Text.Read                      ( read )
 
 newtype CveId =
@@ -95,10 +98,6 @@ data Cve a = Cve
   , cveAffects :: [a]
   } deriving (Eq, Foldable, Functor, Generic, Ord, Show)
 
-instance Affects a => Affects (Cve a) where
-  packages = concatMap packages
-  isAffected x p = let as = cveAffects x in any (`isAffected` p) as
-
 parseCveCommon :: Value -> Parser ([a] -> Cve a)
 parseCveCommon (Object o) = do
   let cve = o .: "cve"
@@ -130,53 +129,26 @@ instance FromJSON (Cve (Configuration Cpe)) where
     parseCveCommon js <*> ((o .: "configurations") >>= (.: "nodes"))
   parseJSON _ = mzero
 
-cvesForPackage
-  :: (Affects a, Ord a)
-  => Package b
-  -> HashMap PackageName (Set (Cve a))
-  -> (Package b, Set (Cve a))
-cvesForPackage pkg cves =
-  let pVersion = packageVersion pkg
-      pName    = packageName pkg
-      -- @TODO can get rid of the list here; or instead of aliases like it used to be before I
-      -- ripped those out generate additional possible package names, for example:
-      -- firefox-bin -> firefox
-      -- foo-unstable -> foo
-      terms    = [pName]
-      queries =
-          foldr Set.union Set.empty
-            . catMaybes
-            $ [ HashMap.lookup term cves | term <- terms ]
-      candidates = zip terms (repeat pVersion)
-      fns        = map (flip isAffected) candidates
-      matches    = Set.filter
-        (\cve ->
-          let ret = map (\fn -> fn cve) fns in getAny . foldMap Any $ ret
-        )
-        queries
-  in  (pkg, matches)
+match :: (PackageName, PackageVersion) -> Cve (Configuration Cpe) -> Bool
+match pkg@(_, _) = or . cveAffects . fmap (Configuration.match pkg)
 
-vulnsFor
-  :: (Affects a, Ord a)
-  => PackageSet CveId
-  -> HashMap PackageName (Set (Cve a))
-  -> [(Package CveId, Set (Cve a))]
-vulnsFor pkgs cves = foldl' (\acc pkg -> cvesForPackage pkg cves : acc) [] pkgs
-
-vulnsFor'
-  :: (Affects a, Ord a, Show a)
-  => Cve a
-  -> PackageSet CveId
-  -> [(Package CveId, Set (Cve a))]
-vulnsFor' cve (KeyedSet pkgs) =
-  let candidates =
-          foldl' (\m n -> HashMap.insert n (Set.singleton cve) m) HashMap.empty
-            . packages
-            $ cve
-      pkgs' =
-          foldl' (\m (name, set) -> HashMap.insertWith Set.union name set m)
-                 HashMap.empty
-            . mapMaybe (`lookupWithKey` pkgs)
-            $ packages cve
-  in  vulnsFor (KeyedSet pkgs') candidates
-  where lookupWithKey k m = (,) <$> pure k <*> HashMap.lookup k m
+{-
+@TODO: see if I can incorporate adding extra package names that map some known naming convention
+into "proper" package names, for example `firefox-bin` -> `firefox`, `foo-unstable` -> `foo`
+-}
+matchMany
+  :: Ord a
+  => HashMap PackageName (Set (Package a))
+  -> Cve (Configuration Cpe)
+  -> Set (Package a)
+matchMany pkgs cve =
+  let configurations    = cveAffects cve
+      affectedNames     = concatMap Configuration.collectNames configurations
+      candidatePackages = foldr
+        (\n xs -> Set.union xs (HashMap.lookupDefault Set.empty n pkgs))
+        mempty
+        affectedNames
+      affectedPackages = Set.filter
+        (\pkg -> match (packageName pkg, packageVersion pkg) cve)
+        candidatePackages
+  in  affectedPackages
