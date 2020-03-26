@@ -40,8 +40,6 @@ import qualified Data.Map                      as Map
 import qualified Data.Set                      as Set
 import           Data.String                    ( String )
 import qualified Data.Text.IO                  as Text
-import qualified Filesystem.Path               as Filesystem
-                                                ( FilePath )
 import           Filesystem.Path.CurrentOS      ( encodeString )
 import           Lucid                   hiding ( for_
                                                 , term
@@ -66,14 +64,13 @@ data Output
   | Markdown
   deriving (Eq, Show)
 
-data CveWithPackage a b = CveWithPackage
-  { _cveWithPackagePackage :: Package b
-  , _cveWithPackageCve :: Cve a
+data CveMatch a b = CveMatch
+  { _cveMatchPackage :: Package b
+  , _cveMatchCve :: Cve a
   } deriving (Eq, Generic, Show)
 
-instance (ToJSON a, ToJSON b) => ToJSON (CveWithPackage a b) where
-  toJSON =
-    genericToJSON $ aesonDrop (length ("_CveWithPackage" :: String)) camelCase
+instance (ToJSON a, ToJSON b) => ToJSON (CveMatch a b) where
+  toJSON = genericToJSON $ aesonDrop (length ("_CveMatch" :: String)) camelCase
 
 report
   :: (MonadLogger m, MonadIO m)
@@ -82,37 +79,32 @@ report
   -> Output -- ^ what type of output to generate
   -> m ()
 report cvePaths drvPath mode = do
-  seen <- liftIO . newTVarIO $ Set.empty
-  pkgs <-
-    liftIO
-    . newTVarIO
-    $ (HashMap.empty :: HashMap PackageName (Set (Package CveId)))
   logInfoN "Collecting derivation inputs..."
-  liftIO . collectDerivationInputs pkgs seen $ drvPath
+  pkgs <- liftIO . collectDerivationInputs $ drvPath
   logInfoN "Done!"
-  foos <- liftIO . readTVarIO $ pkgs
-  let (ex :: [CveId]) = foldr
-        (\cves acc -> (concatMap packagePatches . Set.toList $ cves) ++ acc)
-        []
-        foos
-  -- print ex
+
   let
+    (excludes :: [CveId]) = foldr
+      (\cves acc -> (concatMap packagePatches . Set.toList $ cves) ++ acc)
+      []
+      pkgs
     parser = "CVE_Items" .: arrayOf value :: Parser (Cve (Configuration Cpe))
     go path =
       Stream.readFile path
         & Stream.streamParse parser
         & void
-        & Stream.filter (\cve -> cveId cve `notElem` ex)
+        & Stream.filter (\cve -> cveId cve `notElem` excludes)
         & Stream.map
-            (\cve -> zip (Set.toList . matchMany foos $ cve) (repeat cve))
+            (\cve -> zip (Set.toList . matchMany pkgs $ cve) (repeat cve))
         & Stream.mconcat_
+    renderer = case mode of
+      HTML     -> renderHTML
+      Markdown -> renderMarkdown
+      JSON     -> renderJSON
   logInfoN "Processing the feeds..."
-  vulns <- mconcat <$> liftIO (forConcurrently cvePaths (runResourceT . go))
+  matches <- mconcat <$> liftIO (forConcurrently cvePaths (runResourceT . go))
   logInfoN "Done!"
-  case mode of
-    HTML     -> renderHTML vulns
-    Markdown -> renderMarkdown vulns
-    JSON     -> renderJSON vulns
+  renderer matches
 
 nofailParseDerivation :: Text -> Derivation.Derivation
 nofailParseDerivation t =
@@ -120,61 +112,65 @@ nofailParseDerivation t =
 
 {-
 
-@TODO: fold the tvars into this function as they are an internal detail really
-
 @TODO: create a separate executable to profile this function as parsing derivation is taking way too
 long than what I would expect on paper; indeed it is slower than than streaming gobs of JSON and all
 the matching etc.
 
 -}
 collectDerivationInputs
-  :: TVar (HashMap PackageName (Set (Package CveId)))
-  -> TVar (Set Filesystem.FilePath)
-  -> FilePath
-  -> IO ()
-collectDerivationInputs pkgs seen path = do
-  t <- Text.readFile path
-  let drv        = nofailParseDerivation t
-      inputs     = Set.fromList . Map.keys . Derivation.inputDrvs $ drv
-      drvName    = fromMaybe "" . Map.lookup "name" . Derivation.env $ drv
-      isFOD      = Map.member "outputHash" . Derivation.env $ drv
-      pkgName    = parsePackageName drvName
-      pkgVersion = parsePackageVersion drvName
-      drvPatches = fromMaybe "" . Map.lookup "patches" . Derivation.env $ drv
-      patches    = Bytes.split (fromIntegral . ord $ ' ') . toS $ drvPatches
-      cvePatches = mapMaybe
-        ( (=~ many anySym
-            *> (CveId . toS <$> foldr1
-                 (liftA2 (<>))
-                 [ string "CVE-"
-                 , some (psym isDigit)
-                 , string "-"
-                 , some (psym isDigit)
-                 ]
-               )
-            <* many anySym
+  :: FilePath -> IO (HashMap PackageName (Set (Package CveId)))
+collectDerivationInputs path = do
+  pkgs <-
+    liftIO
+    . newTVarIO
+    $ (HashMap.empty :: HashMap PackageName (Set (Package CveId)))
+  seen <- liftIO . newTVarIO $ Set.empty
+  go pkgs seen path
+  readTVarIO pkgs
+ where
+  go pkgs seen file = do
+    t <- Text.readFile file
+    let drv        = nofailParseDerivation t
+        inputs     = Set.fromList . Map.keys . Derivation.inputDrvs $ drv
+        drvName    = fromMaybe "" . Map.lookup "name" . Derivation.env $ drv
+        isFOD      = Map.member "outputHash" . Derivation.env $ drv
+        pkgName    = parsePackageName drvName
+        pkgVersion = parsePackageVersion drvName
+        drvPatches = fromMaybe "" . Map.lookup "patches" . Derivation.env $ drv
+        patches    = Bytes.split (fromIntegral . ord $ ' ') . toS $ drvPatches
+        cvePatches = mapMaybe
+          ( (=~ many anySym
+              *> (CveId . toS <$> foldr1
+                   (liftA2 (<>))
+                   [ string "CVE-"
+                   , some (psym isDigit)
+                   , string "-"
+                   , some (psym isDigit)
+                   ]
+                 )
+              <* many anySym
+            )
+          . toS
           )
-        . toS
-        )
-        patches
-  unless (pkgVersion == "" || isFOD) $ atomically $ modifyTVar'
-    pkgs
-    (HashMap.insertWith
-      Set.union
-      pkgName
-      (Set.singleton
-        (Package { packageName    = pkgName
-                 , packageVersion = pkgVersion
-                 , packagePatches = cvePatches
-                 }
+          patches
+    unless (pkgVersion == "" || isFOD) $ atomically $ modifyTVar'
+      pkgs
+      (HashMap.insertWith
+        Set.union
+        pkgName
+        (Set.singleton
+          (Package { packageName    = pkgName
+                   , packageVersion = pkgVersion
+                   , packagePatches = cvePatches
+                   }
+          )
         )
       )
-    )
-  for_ inputs $ \input -> do
-    (inputSeen :: Bool) <- Set.member input <$> readTVarIO seen
-    unless inputSeen $ do
-      atomically $ modifyTVar' seen (Set.insert input)
-      liftIO . collectDerivationInputs pkgs seen . toS . encodeString $ input
+    for_ inputs $ \input -> do
+      (inputSeen :: Bool) <- Set.member input <$> readTVarIO seen
+      unless inputSeen $ do
+        atomically $ modifyTVar' seen (Set.insert input)
+        liftIO . go pkgs seen . toS . encodeString $ input
 
 -- @TODO: restore sorting / ordering for HTML & JSON output
 renderHTML :: MonadIO m => [(Package a, Cve b)] -> m ()
@@ -240,7 +236,7 @@ renderMarkdown cves = do
         fromValue
           . toJSON
           . HashMap.fromList
-          $ [("cves" :: Text, map (uncurry CveWithPackage) cves)]
+          $ [("cves" :: Text, map (uncurry CveMatch) cves)]
   tpl <- liftIO . eitherParseFile =<< findFile "templates/cves.ede"
   let ret = flip eitherRender env =<< tpl
   case ret of
@@ -250,4 +246,4 @@ renderMarkdown cves = do
     Right out -> putText . toS $ out
 
 renderJSON :: (ToJSON a, ToJSON b, MonadIO m) => [(Package a, Cve b)] -> m ()
-renderJSON = putText . toS . encode . map (uncurry CveWithPackage)
+renderJSON = putText . toS . encode . map (uncurry CveMatch)
