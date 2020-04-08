@@ -12,7 +12,7 @@ let
     ;
   feeds = builtins.map
     (year: ./feeds + "/nvdcve-1.1-${toString year}.json")
-    (range 2002 2019);
+    (range 2002 2020);
 in
 writeScriptBin "nvs" ''
   #!${pkgs.runtimeShell}
