@@ -8,12 +8,12 @@ let
       packages = super.haskell.packages // {
         "${compiler}" = super.haskell.packages.${compiler}.override {
           overrides = hself: hsuper: with self.haskell.lib; {
-            ede = appendPatch hsuper.ede ./patches/ede-0.2.9-ghc882.patch;
+            ede = overrideCabal hsuper.ede (
+              drv: {
+                src = sources."ede-trifecta-2.1";
+              }
+            );
             text-format = markUnbroken (doJailbreak hsuper.text-format);
-            trifecta =
-              appendPatch
-                (doJailbreak ((hself.callHackage "trifecta" "2" {})))
-                ./patches/trifecta-2-ghc882.patch;
           };
         };
       };
