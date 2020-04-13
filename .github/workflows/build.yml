@@ -1,4 +1,4 @@
-name: "Build"
+name: "build & smoke test"
 on:
   pull_request:
   push:
@@ -8,4 +8,4 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - uses: cachix/install-nix-action@v7
-    - run: nix-build
+    - run: nix-build && test/generate-report
