@@ -1,9 +1,0 @@
-language: nix
-sudo: true
-script:
-- nix-build -I nixpkgs=https://nixos.org/channels/nixos-19.09/nixexprs.tar.xz -Q
-- ./test/generate-report nixos-19.09
-- ./test/generate-report nixos-unstable
-- nix-build -I nixpkgs=https://nixos.org/channels/nixos-unstable/nixexprs.tar.xz -Q
-- ./test/generate-report nixos-19.09
-- ./test/generate-report nixos-unstable
