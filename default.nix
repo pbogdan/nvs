@@ -13,7 +13,6 @@ let
                 src = sources."ede-trifecta-2.1";
               }
             );
-            text-format = markUnbroken (doJailbreak hsuper.text-format);
           };
         };
       };
