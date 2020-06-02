@@ -42,7 +42,7 @@ library
         json-stream >=0.4.1,
         lucid >=2.9.8 && <2.10,
         monad-logger >=0.3 && <0.4,
-        nix-derivation >=1.0.2,
+        nix-derivation >=1.1.0,
         optparse-applicative >=0.13,
         protolude >=0.2,
         regex-applicative >=0.3.3,

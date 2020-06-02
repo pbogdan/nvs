@@ -40,7 +40,6 @@ import           Data.JsonStream.Parser  hiding ( string )
 import qualified Data.Map                      as Map
 import qualified Data.Set                      as Set
 import qualified Data.Text.IO                  as Text
-import           Filesystem.Path.CurrentOS      ( encodeString )
 import qualified Nix.Derivation                as Derivation
 import           Nixpkgs.Packages
 import           Nixpkgs.Packages.Types
@@ -90,7 +89,7 @@ report cvePaths drvPath mode = do
   logInfoN "Done!"
   renderer matches
 
-nofailParseDerivation :: Text -> Derivation.Derivation
+nofailParseDerivation :: Text -> Derivation.Derivation FilePath Text
 nofailParseDerivation t =
   let (Done _ !drv) = Parsec.parse Derivation.parseDerivation t in drv
 
@@ -154,4 +153,4 @@ collectDerivationInputs path = do
       inputSeen <- Set.member input <$> readTVarIO seen
       unless inputSeen $ do
         atomically $ modifyTVar' seen (Set.insert input)
-        go pkgs seen . encodeString $ input
+        go pkgs seen input
