@@ -46,6 +46,7 @@ library
         optparse-applicative >=0.13,
         protolude >=0.2,
         regex-applicative >=0.3.3,
+        repology-versions -any,
         resourcet >=1.2.2,
         stm >=2.5.0,
         streaming >=0.1.4,

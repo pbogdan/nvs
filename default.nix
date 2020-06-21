@@ -13,6 +13,9 @@ let
                 src = sources."ede-trifecta-2.1";
               }
             );
+            repology-versions = import sources.repology-versions {
+              inherit sources;
+            };
           };
         };
       };
