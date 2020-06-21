@@ -44,10 +44,11 @@ displayPackageName (PackageName name) = name
 -- https://github.com/NixOS/nix/blob/c94f3d5575d7af5403274d1e9e2f3c9d72989751/src/libexpr/names.cc#L14
 parsePackageName :: Text -> PackageName
 parsePackageName s =
-  PackageName
-    . Text.dropEnd
-        ((Text.length . unPackageVersion . parsePackageVersion $ s) + 1)
-    $ s
+  let versionString = unPackageVersion . parsePackageVersion $ s
+      suffixLength  = case Text.length versionString of
+        0 -> 0
+        n -> n + 1
+  in  PackageName . Text.dropEnd suffixLength $ s
 
 newtype PackageVersion = PackageVersion
   { unPackageVersion :: Text
@@ -82,8 +83,8 @@ parsePackageVersion s =
   let prefix = Text.takeWhile (/= '-') s
       suffix = Text.drop (Text.length prefix) s
   in  case Text.length suffix of
-        0 -> PackageVersion suffix
-        1 -> PackageVersion (suffix <> prefix)
+        0 -> PackageVersion ""
+        1 -> PackageVersion ""
         _ ->
           let c = Text.head . Text.drop 1 $ suffix
           in  if isDigit c
