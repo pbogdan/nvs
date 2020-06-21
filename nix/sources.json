@@ -11,6 +11,18 @@
         "url": "https://github.com/pbogdan/ede/archive/1114be9457b15aa8f40a30e058b766048fe3479a.tar.gz",
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     },
+    "repology-versions": {
+        "branch": "master",
+        "description": "A Haskell binding to repology's libversion.",
+        "homepage": null,
+        "owner": "pbogdan",
+        "repo": "repology-versions",
+        "rev": "8c217b2e45f7550f9336ea8ba006af97e6f327c4",
+        "sha256": "0yi4z8wdgrc81rdryp7755jqq2bs3p3rn0jil4x5qfvzsgd5z04b",
+        "type": "tarball",
+        "url": "https://github.com/pbogdan/repology-versions/archive/8c217b2e45f7550f9336ea8ba006af97e6f327c4.tar.gz",
+        "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
+    },
     "unstable": {
         "branch": "nixos-unstable",
         "description": "Nix Packages collection",

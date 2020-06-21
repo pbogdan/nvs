@@ -20,6 +20,7 @@ import           Data.Char
 import           Data.String                    ( IsString(..) )
 import qualified Data.Text                     as Text
 import           Data.Versions
+import qualified Repology.Versions             as Repology
 
 newtype PackageName = PackageName
   { unPackageName :: Text
@@ -50,7 +51,15 @@ parsePackageName s =
 
 newtype PackageVersion = PackageVersion
   { unPackageVersion :: Text
-  } deriving (Eq, Generic, Hashable, Ord, Show)
+  } deriving (Generic, Hashable, Show)
+
+instance Eq PackageVersion where
+  (PackageVersion v1) == (PackageVersion v2) =
+    Repology.Version (toS v1) == Repology.Version (toS v2)
+
+instance Ord PackageVersion where
+  (PackageVersion v1) `compare` (PackageVersion v2) =
+    Repology.Version (toS v1) `compare` Repology.Version (toS v2)
 
 instance FromJSON PackageVersion where
   parseJSON (String s) = pure . PackageVersion $ s
