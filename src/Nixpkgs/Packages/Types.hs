@@ -48,7 +48,15 @@ parsePackageName s =
       suffixLength  = case Text.length versionString of
         0 -> 0
         n -> n + 1
-  in  PackageName . Text.dropEnd suffixLength $ s
+  in  PackageName . normalise . Text.dropEnd suffixLength $ s
+ where
+  normalise :: Text -> Text
+  normalise name
+    | Text.isSuffixOf "-bin" name = Text.dropEnd (Text.length "-bin") name
+    | Text.isSuffixOf "-unstable" name = Text.dropEnd
+      (Text.length "-unstable")
+      name
+    | otherwise = name
 
 newtype PackageVersion = PackageVersion
   { unPackageVersion :: Text
