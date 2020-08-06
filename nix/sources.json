@@ -1,16 +1,4 @@
 {
-    "ede-trifecta-2.1": {
-        "branch": "trifecta-2.1",
-        "description": "Templating language with similar syntax and features to Liquid or Jinja2.",
-        "homepage": "",
-        "owner": "pbogdan",
-        "repo": "ede",
-        "rev": "1114be9457b15aa8f40a30e058b766048fe3479a",
-        "sha256": "1km89ahwa4r2ly85kwzp6np807lf5n81bbbszk4yhqmx0qcxcmzg",
-        "type": "tarball",
-        "url": "https://github.com/pbogdan/ede/archive/1114be9457b15aa8f40a30e058b766048fe3479a.tar.gz",
-        "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
-    },
     "repology-versions": {
         "branch": "master",
         "description": "A Haskell binding to repology's libversion.",
